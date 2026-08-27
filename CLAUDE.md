@@ -115,7 +115,12 @@ This fork includes additional plugin sections in config:
 
 ## Hardware Notes
 
-- GPIO uses BOARD numbering (gpiozero)
-- Custom `LgpioButton` class in `booth.py` works around gpiozero 2.0.1 bug for printer button
-- Falls back to `MockFactory` on non-Raspberry Pi systems
+- GPIO uses BOARD numbering (physical header pins) on every board
+- `pibooth/hardware/` detects the board from `/proc/device-tree/model` and loads the
+  matching backend: `rpi.py` (gpiozero) on Raspberry Pi, `chardev.py` (lgpio on
+  `/dev/gpiochipN`) on other boards, `mock.py` elsewhere
+- Pin to GPIO line translation lives in `pibooth/hardware/pinouts.ini`, adding a board
+  needs no code
+- `pibooth-gpio` checks the wiring against the running board
+- This repository targets a Khadas VIM4, see `PORTING.md`
 - Window shortcuts: ESC + both buttons = settings, Ctrl+F = fullscreen, 4-finger touch = settings
