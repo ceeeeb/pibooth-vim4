@@ -34,6 +34,9 @@ GALLERY_PORT="${GALLERY_PORT:-8081}"
 WIFI_PORTAL_PORT="${WIFI_PORTAL_PORT:-8080}"
 DISPLAY_ROTATE="${DISPLAY_ROTATE:-2}"
 
+# Renseignée par check_prerequisites : raspberry-pi, khadas-vim4 ou unknown.
+BOARD="unknown"
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FILES_DIR="${SCRIPT_DIR}/files"
 
@@ -59,6 +62,20 @@ install_file() {
     ok "${target}"
 }
 
+# --- Carte -----------------------------------------------------------------
+
+# Seuls les paquets caméra et GPIO, et la configuration de l'affichage,
+# dépendent de la carte. Voir PORTING.md pour le détail du portage.
+detect_board() {
+    local model=""
+    [[ -f /proc/device-tree/model ]] && model="$(tr -d '\0' < /proc/device-tree/model)"
+    case "${model}" in
+        *"Raspberry Pi"*) echo "raspberry-pi" ;;
+        *"Khadas VIM4"*)  echo "khadas-vim4" ;;
+        *)                echo "unknown" ;;
+    esac
+}
+
 # --- Vérifications ---------------------------------------------------------
 
 check_prerequisites() {
@@ -70,15 +87,22 @@ check_prerequisites() {
     id "${PIBOOTH_USER}" &>/dev/null || fail "utilisateur ${PIBOOTH_USER} inexistant"
     ok "utilisateur ${PIBOOTH_USER}"
 
+    BOARD="$(detect_board)"
     if [[ -f /proc/device-tree/model ]]; then
-        ok "$(tr -d '\0' < /proc/device-tree/model)"
+        ok "$(tr -d '\0' < /proc/device-tree/model) → ${BOARD}"
     else
-        warn "matériel non Raspberry Pi : GPIO et caméra seront indisponibles"
+        warn "matériel sans device tree : GPIO et caméra seront indisponibles"
+    fi
+    if [[ "${BOARD}" == "unknown" ]]; then
+        warn "carte non reconnue : le GPIO sera simulé, boutons et LED inertes"
     fi
 
     local codename
     codename="$(. /etc/os-release && echo "${VERSION_CODENAME:-inconnu}")"
-    [[ "${codename}" == "bookworm" ]] || warn "testé sur Bookworm, détecté : ${codename}"
+    case "${codename}" in
+        bookworm|jammy|noble) ok "distribution ${codename}" ;;
+        *) warn "testé sur Bookworm et Jammy, détecté : ${codename}" ;;
+    esac
 
     curl -fsS --max-time 10 -o /dev/null https://pypi.org/simple/ \
         || fail "pas d'accès à PyPI — vérifier la connexion réseau"
@@ -99,12 +123,19 @@ step_packages() {
         libsdl2-2.0-0 libsdl2-image-2.0-0 libsdl2-mixer-2.0-0
         libsdl2-ttf-2.0-0 libsdl2-gfx-1.0-0
         libgphoto2-6 libgphoto2-dev libgphoto2-port12
-        python3-picamera2 python3-gpiozero python3-libgpiod
         python3-numpy python3-opencv python3-flask
         cups libcups2-dev
         network-manager nftables dnsmasq-base
         ffmpeg fonts-liberation2 fonts-noto-color-emoji
     )
+
+    # picamera2 et gpiozero n'existent que sur Raspberry Pi OS. Ailleurs le GPIO
+    # passe par le character device, et la caméra par l'USB.
+    if [[ "${BOARD}" == "raspberry-pi" ]]; then
+        packages+=(python3-picamera2 python3-gpiozero python3-libgpiod)
+    else
+        packages+=(python3-libgpiod)
+    fi
 
     info "mise à jour de l'index APT…"
     sudo apt-get update -qq
@@ -142,13 +173,20 @@ step_python() {
     # Fork personnalisé publié sur PyPI, puis les plugins.
     local packages=(
         pibooth-ceeeeb
-        pibooth-picamera2
         pibooth-nextcloud
         pibooth-pcloud
         pibooth-gallery-qr
         pibooth-extra-lights
         pibooth-forget-button
     )
+
+    # Le module caméra CSI du Pi n'a pas d'équivalent ailleurs : la caméra y est
+    # branchée en USB et pilotée par OpenCV, et le GPIO a besoin de lgpio.
+    if [[ "${BOARD}" == "raspberry-pi" ]]; then
+        packages+=(pibooth-picamera2)
+    else
+        packages+=(lgpio)
+    fi
 
     info "installation de pibooth et des ${#packages[@]} paquets Python…"
     sudo -u "${PIBOOTH_USER}" "${pip}" install --quiet --upgrade "${packages[@]}" \
@@ -320,6 +358,17 @@ CONF
 step_display() {
     step "Affichage"
 
+    if [[ "${BOARD}" == "raspberry-pi" ]]; then
+        configure_firmware_display
+    else
+        warn "rotation de l'écran à configurer à la main sur ${BOARD} (xrandr)"
+    fi
+
+    apply_touch_flip
+}
+
+# Sur Raspberry Pi, la rotation et la mémoire vidéo se règlent dans le firmware.
+configure_firmware_display() {
     local config_file=/boot/firmware/config.txt
     [[ -f "${config_file}" ]] || config_file=/boot/config.txt
     [[ -f "${config_file}" ]] || { warn "config.txt introuvable"; return 0; }
@@ -337,8 +386,6 @@ step_display() {
         echo "gpu_mem=128" | sudo tee -a "${config_file}" >/dev/null
     fi
     ok "gpu_mem=128"
-
-    apply_touch_flip
 }
 
 # L'écran est monté à l'envers : le firmware retourne l'affichage, mais SDL lit
