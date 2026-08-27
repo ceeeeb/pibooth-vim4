@@ -149,9 +149,26 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
+    def _is_same_origin(self):
+        """Return True when the request comes from a page served by this portal.
+
+        A cross-site form submission carries the origin of the attacking page,
+        which is what tells it apart from the portal own form. Browsers omitting
+        'Origin' on same-origin posts are covered by the 'Referer' fallback.
+        """
+        expected = "http://{}".format(self.headers.get("Host", ""))
+        origin = self.headers.get("Origin")
+        if origin:
+            return origin == expected
+        referer = self.headers.get("Referer", "")
+        return referer.startswith(expected + "/")
+
     def do_POST(self):
         if self.path != "/add":
             self.send_error(404)
+            return
+        if not self._is_same_origin():
+            self.send_error(403, "Cross-site request rejected")
             return
         length = int(self.headers.get("Content-Length", 0))
         data = parse_qs(self.rfile.read(length).decode())
