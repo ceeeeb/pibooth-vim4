@@ -173,10 +173,28 @@ Par ordre d'intérêt pour le photomaton :
 6. **Deux ports MIPI-CSI** — deuxième point de vue, ou capture large + portrait
    dans la même séquence.
 
-## 4. Reste à faire
+## 4. Installation
 
-- adapter la rotation de l'écran et l'inversion du tactile (`xrandr` et matrice
-  de transformation libinput, à la place de `/boot/config.txt`) ;
-- adapter les services du portail Wi-Fi et de la galerie (`install/`) ;
-- vérifier les versions figées de `Pillow` et `pygame-menu` sur ARM64 ;
-- porter les plugins externes qui utilisent encore `gpiozero` directement.
+`install/install.sh` détecte la carte et adapte ce qui en dépend :
+
+| | Raspberry Pi | autre carte |
+|---|---|---|
+| Paquets APT | `python3-picamera2`, `python3-gpiozero`, `python3-libgpiod` | `python3-libgpiod` |
+| Paquets Python | `pibooth-picamera2` | `lgpio` |
+| Affichage | rotation et `gpu_mem` écrits dans le `config.txt` du firmware | à configurer à la main |
+
+Le reste des étapes (services, hotspot, portail captif, galerie, démarrage
+automatique) ne dépend pas de la carte. Le sudoers du portail Wi-Fi est limité
+à `nmcli device wifi connect`, la seule commande privilégiée qu'il exécute.
+
+## 5. Reste à faire
+
+- **rotation de l'écran** : `xrandr` et matrice de transformation libinput à la
+  place de `display_hdmi_rotate`. Les commandes exactes dépendent du serveur
+  d'affichage livré par Khadas, à déterminer sur la carte ;
+- **plugins GPIO externes** : `pibooth-extra-lights` et `pibooth-forget-button`
+  sont des paquets publiés séparément et utilisent encore `gpiozero`. Ils
+  doivent passer par `pibooth.hardware` pour fonctionner hors Raspberry Pi ;
+- **publication** : `install.sh` installe depuis PyPI, la version portée doit y
+  être publiée pour que l'installation fonctionne sur VIM4 ;
+- vérifier les versions figées de `Pillow` et `pygame-menu` sur ARM64.
