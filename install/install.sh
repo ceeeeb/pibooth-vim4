@@ -178,9 +178,13 @@ step_scripts() {
     install_file wifi-info-display.py "${PIBOOTH_HOME}/wifi-info-display.py" "${owner}" 755
     install_file start-pibooth.sh     "${PIBOOTH_HOME}/start-pibooth.sh"     "${owner}" 755
 
-    # Le portail Wi-Fi pilote NetworkManager sans mot de passe.
-    echo "${PIBOOTH_USER} ALL=(ALL) NOPASSWD: /usr/bin/nmcli" \
-        | sudo tee /etc/sudoers.d/wifi-portal >/dev/null
+    # Le portail ne connecte que le Wi-Fi client. Un accès complet à nmcli
+    # laisserait lire les mots de passe enregistrés avec 'connection show
+    # --show-secrets' et supprimer n'importe quel profil.
+    sudo tee /etc/sudoers.d/wifi-portal >/dev/null <<SUDOERS
+Cmnd_Alias PIBOOTH_NMCLI = /usr/bin/nmcli device wifi connect *
+${PIBOOTH_USER} ALL=(ALL) NOPASSWD: PIBOOTH_NMCLI
+SUDOERS
     sudo chmod 440 /etc/sudoers.d/wifi-portal
     sudo visudo -cqf /etc/sudoers.d/wifi-portal || fail "sudoers wifi-portal invalide"
     ok "/etc/sudoers.d/wifi-portal"
