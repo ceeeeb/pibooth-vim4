@@ -83,10 +83,9 @@ def connect(ssid, password):
     if reason:
         return False, reason
 
-    subprocess.run(
-        ["sudo", "nmcli", "connection", "delete", ssid],
-        capture_output=True, check=False,
-    )
+    # 'nmcli device wifi connect' reuses an existing profile on its own. Deleting
+    # the profile named after the submitted SSID would let a visitor drop any
+    # connection, the guest hotspot included.
     cmd = ["sudo", "nmcli", "device", "wifi", "connect", ssid,
            "ifname", CLIENT_IFACE]
     if password:
