@@ -92,7 +92,7 @@ tout cela n'existe sur VIM4**, et le module CSI du Pi n'y est pas compatible
 | Webcam USB UVC | 1/3" | inférieure au module Pi | aucun, `CvCamera` est déjà supporté |
 | Khadas OS08A10 (69 $) | OV08A10, 8 MP, f/2.1, 160°, objectif M12 interchangeable | proche du module Pi si l'objectif est remplacé | backend V4L2/GStreamer à écrire |
 | Khadas IMX415 (50 $) | Sony 1/2.8", 8,29 MP, f/2.4, 110°, autofocus | en dessous du module Pi en basse lumière | backend V4L2/GStreamer à écrire |
-| **Kit Arducam IMX708 USB UVC (50 $)** | le capteur du module Pi actuel, derrière un adaptateur CSI vers UVC | identique à aujourd'hui, au tuning ISP près | aucun, `CvCamera` est déjà supporté |
+| **Arducam B0304 USB UVC (69 €)** | IMX708, le capteur du module Pi actuel, derrière un adaptateur CSI vers UVC, f/2.2, 66° H | identique à aujourd'hui, au tuning ISP et à l'ouverture près | aucun, `CvCamera` est déjà supporté |
 
 Remarques :
 
@@ -121,25 +121,35 @@ les fichiers de calibration de l'ISP Amlogic pour ce capteur, qui n'existent
 pas. Toute la qualité d'image du module Pi vient du tuning `imx708.json` de
 libcamera, côté ISP Broadcom, et n'est pas transposable.
 
-En USB, en revanche, oui : Arducam vend une carte convertissant le MIPI CSI en
-UVC, et donc un
-[kit IMX708 tout fait](https://blog.arducam.com/imx708-camera-or-webcam-combined/)
-à 49,98 $ (59,98 $ en 102° grand angle), qui conserve la définition native de
-4608×2592. Le capteur devient une webcam standard : `CvCamera` fonctionne
+En USB, en revanche, oui : Arducam vend le même capteur derrière un adaptateur
+CSI vers UVC, en kit tout fait. Modèle retenu : **Arducam B0304, 12MP IMX708
+USB UVC Fixed-Focus Camera Module 3**, environ 69 €.
+
+| | B0304 | Module Pi 3 actuel |
+|---|---|---|
+| Capteur | IMX708, 4608×2592, pixels 1,4 µm | identique |
+| Champ | 75° D, 66° H, 41° V | 75° D, 66° H |
+| Ouverture | f/2.2, focale 2,75 mm | f/1.8, focale 4,74 mm |
+| Mise au point | fixe | autofocus, verrouillé sur l'hyperfocale par le plugin |
+| Débits | 4608×2592 à 15 i/s, 1920×1080 et 1280×720 à 30 i/s | — |
+| Flux | MJPG et YUV, contrôles UVC standards | picamera2 et libcamera |
+
+Le cadrage sera donc identique à celui d'aujourd'hui, à un tiers de diaphragme
+près en moins. Le capteur devient une webcam standard : `CvCamera` fonctionne
 directement et le plugin `pibooth_picamera2.py`, spécifique au Pi, disparaît.
 
-Limites :
+Points d'attention :
 
-- ces kits sont à mise au point fixe, ce qui convient puisque le plugin actuel
-  verrouille déjà l'hyperfocale, mais le module Pi officiel ne peut pas être
-  recyclé sur l'adaptateur : son moteur d'autofocus n'est pas piloté. Acheter
-  le kit complet plutôt que la carte seule ;
+- la pleine définition n'est atteinte qu'en flux compressé. `CvCamera` négocie
+  donc le format MJPG à l'initialisation, sans quoi le pilote retombe
+  silencieusement sur une définition plus basse ;
+- le module Pi officiel ne peut pas être recyclé sur un adaptateur acheté seul,
+  son moteur d'autofocus n'y est pas piloté : prendre le kit complet ;
 - le traitement d'image est celui de l'adaptateur, pas celui du Raspberry Pi :
   couleurs et bruit un cran en dessous ;
-- la pleine définition tombe à une dizaine d'images par seconde, sans
-  conséquence pour un photomaton ;
 - les réglages d'exposition et de balance des blancs passent par les contrôles
-  UVC (`v4l2-ctl`) au lieu de ceux de picamera2.
+  UVC (`v4l2-ctl`) au lieu de ceux de picamera2 ;
+- `resolution = (4608,2592)` peut rester tel quel dans la configuration.
 
 Ce kit est testable sur le Pi actuel avant même la migration : le brancher en
 USB, basculer la configuration sur `CvCamera` et comparer le rendu.
