@@ -195,14 +195,21 @@ class Led(BaseLed):
             if thread is not threading.current_thread():
                 thread.join(timeout=1)
 
-    def _blink(self, stop, on_time, off_time):
-        while True:
+    def _blink(self, stop, on_time, off_time, n):
+        cycles = 0
+        while n is None or cycles < n:
             self._write(True)
             if stop.wait(on_time):
-                break
+                return
             self._write(False)
             if stop.wait(off_time):
-                break
+                return
+            cycles += 1
+
+        # The sequence ended on its own, the LED is no longer blinking
+        with self._lock:
+            if self._blinking and self._blinking[1] is stop:
+                self._blinking = None
 
     def on(self):
         self._stop_blinking()
@@ -212,10 +219,10 @@ class Led(BaseLed):
         self._stop_blinking()
         self._write(False)
 
-    def blink(self, on_time=1, off_time=1):
+    def blink(self, on_time=1, off_time=1, n=None):
         self._stop_blinking()
         stop = threading.Event()
-        thread = threading.Thread(target=self._blink, args=(stop, on_time, off_time), daemon=True)
+        thread = threading.Thread(target=self._blink, args=(stop, on_time, off_time, n), daemon=True)
         with self._lock:
             self._blinking = (thread, stop)
         thread.start()

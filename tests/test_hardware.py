@@ -69,6 +69,24 @@ class LedGroupTest(unittest.TestCase):
         self.assertFalse(any(led.is_blinking for led in self.leds))
 
 
+class AnonymousLedGroupTest(unittest.TestCase):
+
+    def test_unnamed_leds_are_driven_together(self):
+        leds = hardware.LedGroup(mock.Led(29), mock.Led(31))
+        leds.blink()
+        self.assertEqual([led.is_blinking for led in leds], [True, True])
+
+    def test_named_and_unnamed_leds_can_be_mixed(self):
+        leds = hardware.LedGroup(mock.Led(29), flash=mock.Led(33))
+        self.assertEqual(len(list(leds)), 2)
+        self.assertEqual(leds.flash.pin, 33)
+
+    def test_bounded_blinking_does_not_last(self):
+        led = mock.Led(33)
+        led.blink(n=3)
+        self.assertFalse(led.is_blinking)
+
+
 class ButtonGroupTest(unittest.TestCase):
 
     def test_value_reports_every_button(self):

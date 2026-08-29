@@ -43,8 +43,8 @@ class Led(BaseLed):
     def off(self):
         self._blinking = False
 
-    def blink(self, on_time=1, off_time=1):
-        self._blinking = True
+    def blink(self, on_time=1, off_time=1, n=None):
+        self._blinking = n is None
 
     @property
     def is_blinking(self):

@@ -62,9 +62,9 @@ class Board(object):
         """Return a button connected to the given header pin."""
         return self._backend.Button(self._line(pin), pull_up=pull_up, hold_time=hold_time)
 
-    def create_led(self, pin):
+    def create_led(self, pin, active_high=True):
         """Return a LED connected to the given header pin."""
-        return self._backend.Led(self._line(pin))
+        return self._backend.Led(self._line(pin), active_high=active_high)
 
 
 def find_board():
@@ -88,15 +88,15 @@ def find_board():
 
 class DeviceGroup(object):
 
-    """A set of GPIO devices addressed by name."""
+    """A set of GPIO devices driven together, and reachable by name when named."""
 
-    def __init__(self, **devices):
-        self._devices = devices
-        for name, device in devices.items():
+    def __init__(self, *devices, **named_devices):
+        self._devices = list(devices) + list(named_devices.values())
+        for name, device in named_devices.items():
             setattr(self, name, device)
 
     def __iter__(self):
-        return iter(self._devices.values())
+        return iter(self._devices)
 
     def close(self):
         for device in self:
@@ -124,6 +124,6 @@ class LedGroup(DeviceGroup):
         for led in self:
             led.off()
 
-    def blink(self, on_time=1, off_time=1):
+    def blink(self, on_time=1, off_time=1, n=None):
         for led in self:
-            led.blink(on_time=on_time, off_time=off_time)
+            led.blink(on_time=on_time, off_time=off_time, n=n)

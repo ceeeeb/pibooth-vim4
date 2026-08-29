@@ -49,8 +49,10 @@ class BaseLed(object):
         """Switch the LED off, stopping any blinking sequence."""
         raise NotImplementedError
 
-    def blink(self, on_time=1, off_time=1):
-        """Start blinking the LED until :py:meth:`on` or :py:meth:`off` is called."""
+    def blink(self, on_time=1, off_time=1, n=None):
+        """Blink the LED n times, or until :py:meth:`on` or :py:meth:`off` is
+        called when n is None.
+        """
         raise NotImplementedError
 
     @property
