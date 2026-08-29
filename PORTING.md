@@ -187,6 +187,11 @@ Les plugins GPIO externes sont portés dans `~/git/pibooth-extra-lights-vim4` et
 `~/git/pibooth-forget-button` : ils demandent leurs boutons et leurs LED à
 `app.board` au lieu de `gpiozero`, et fonctionnent donc sur les deux cartes.
 
+`~/git/pibooth-background-changer` ne touche pas au GPIO, mais choisissait son
+modèle de détourage d'après la seule famille Raspberry Pi : le VIM4 tombait dans
+la branche « ordinateur de bureau ». Il reconnaît maintenant la carte, et toute
+carte munie d'un device tree reçoit le modèle léger.
+
 Le reste des étapes (services, hotspot, portail captif, galerie, démarrage
 automatique) ne dépend pas de la carte. Le sudoers du portail Wi-Fi est limité
 à `nmcli device wifi connect`, la seule commande privilégiée qu'il exécute.
