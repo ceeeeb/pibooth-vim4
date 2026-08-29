@@ -183,6 +183,10 @@ Par ordre d'intérêt pour le photomaton :
 | Paquets Python | `pibooth-picamera2` | `lgpio` |
 | Affichage | rotation et `gpu_mem` écrits dans le `config.txt` du firmware | à configurer à la main |
 
+Les plugins GPIO externes sont portés dans `~/git/pibooth-extra-lights` et
+`~/git/pibooth-forget-button` : ils demandent leurs boutons et leurs LED à
+`app.board` au lieu de `gpiozero`, et fonctionnent donc sur les deux cartes.
+
 Le reste des étapes (services, hotspot, portail captif, galerie, démarrage
 automatique) ne dépend pas de la carte. Le sudoers du portail Wi-Fi est limité
 à `nmcli device wifi connect`, la seule commande privilégiée qu'il exécute.
@@ -192,9 +196,9 @@ automatique) ne dépend pas de la carte. Le sudoers du portail Wi-Fi est limité
 - **rotation de l'écran** : `xrandr` et matrice de transformation libinput à la
   place de `display_hdmi_rotate`. Les commandes exactes dépendent du serveur
   d'affichage livré par Khadas, à déterminer sur la carte ;
-- **plugins GPIO externes** : `pibooth-extra-lights` et `pibooth-forget-button`
-  sont des paquets publiés séparément et utilisent encore `gpiozero`. Ils
-  doivent passer par `pibooth.hardware` pour fonctionner hors Raspberry Pi ;
-- **publication** : `install.sh` installe depuis PyPI, la version portée doit y
-  être publiée pour que l'installation fonctionne sur VIM4 ;
+- **publication** : `install.sh` installe depuis PyPI, les versions portées
+  doivent y être publiées pour que l'installation fonctionne sur VIM4. Le nom
+  `pibooth-extra-lights` appartient au dépôt amont : le fork devra être publié
+  sous un autre nom, comme `pibooth-ceeeeb` l'a été, et `install.sh` mis à jour
+  en conséquence ;
 - vérifier les versions figées de `Pillow` et `pygame-menu` sur ARM64.
