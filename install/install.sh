@@ -176,7 +176,7 @@ step_python() {
         pibooth-nextcloud
         pibooth-pcloud
         pibooth-gallery-qr
-        pibooth-extra-lights
+        pibooth-extra-lights-vim4
         pibooth-forget-button
     )
 

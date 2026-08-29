@@ -183,7 +183,7 @@ Par ordre d'intérêt pour le photomaton :
 | Paquets Python | `pibooth-picamera2` | `lgpio` |
 | Affichage | rotation et `gpu_mem` écrits dans le `config.txt` du firmware | à configurer à la main |
 
-Les plugins GPIO externes sont portés dans `~/git/pibooth-extra-lights` et
+Les plugins GPIO externes sont portés dans `~/git/pibooth-extra-lights-vim4` et
 `~/git/pibooth-forget-button` : ils demandent leurs boutons et leurs LED à
 `app.board` au lieu de `gpiozero`, et fonctionnent donc sur les deux cartes.
 
@@ -197,8 +197,7 @@ automatique) ne dépend pas de la carte. Le sudoers du portail Wi-Fi est limité
   place de `display_hdmi_rotate`. Les commandes exactes dépendent du serveur
   d'affichage livré par Khadas, à déterminer sur la carte ;
 - **publication** : `install.sh` installe depuis PyPI, les versions portées
-  doivent y être publiées pour que l'installation fonctionne sur VIM4. Le nom
-  `pibooth-extra-lights` appartient au dépôt amont : le fork devra être publié
-  sous un autre nom, comme `pibooth-ceeeeb` l'a été, et `install.sh` mis à jour
-  en conséquence ;
+  doivent y être publiées pour que l'installation fonctionne sur VIM4. Le fork
+  des lumières est renommé `pibooth-extra-lights-vim4`, le nom amont étant déjà
+  pris ; `pibooth-forget-button` garde le sien et passe en 1.1.0 ;
 - vérifier les versions figées de `Pillow` et `pygame-menu` sur ARM64.
