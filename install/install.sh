@@ -376,10 +376,37 @@ step_display() {
     if [[ "${BOARD}" == "raspberry-pi" ]]; then
         configure_firmware_display
     else
+        install_light_desktop
         warn "rotation de l'écran à configurer à la main sur ${BOARD} (xrandr)"
     fi
 
     apply_touch_flip
+}
+
+# Les images serveur des autres cartes n'ont pas de session graphique, or
+# pibooth démarre avec elle : LightDM ouvre une session Openbox automatiquement.
+install_light_desktop() {
+    if [[ -f /etc/X11/default-display-manager ]] \
+        && [[ "$(cat /etc/X11/default-display-manager)" != */lightdm ]]; then
+        ok "gestionnaire d'affichage déjà présent : $(cat /etc/X11/default-display-manager)"
+        return 0
+    fi
+
+    local packages=(
+        xserver-xorg-core xserver-xorg-input-libinput xserver-xorg-video-fbdev
+        x11-xserver-utils xinit lightdm lightdm-gtk-greeter openbox python3-xdg
+    )
+    info "installation d'un bureau léger (Xorg, LightDM, Openbox)…"
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends "${packages[@]}"
+
+    # python3-xdg permet à Openbox de lancer ~/.config/autostart/pibooth.desktop.
+    sudo install -D -o root -g root -m 644 /dev/stdin /etc/lightdm/lightdm.conf.d/50-pibooth.conf << CONF
+[Seat:*]
+autologin-user=${PIBOOTH_USER}
+autologin-session=openbox
+user-session=openbox
+CONF
+    ok "session Openbox ouverte automatiquement pour ${PIBOOTH_USER}"
 }
 
 # Sur Raspberry Pi, la rotation et la mémoire vidéo se règlent dans le firmware.
