@@ -9,6 +9,7 @@ from pibooth import hardware
 from pibooth.hardware.base import GpioError
 from pibooth.utils import configure_logging
 from pibooth.config import PiConfigParser
+from pibooth.config.parser import DEFAULT
 from pibooth.plugins import create_plugin_manager
 
 # Duration of the buttons watching sequence
@@ -18,8 +19,14 @@ WATCH_TIME = 20
 def get_configured_pins(config, suffix):
     """Yield the (option, pin) declared in the CONTROLS section and matching the
     given suffix. A pin set to 0 means that the device is not wired.
+
+    The default options are included, as the configuration file may not exist
+    yet on a board freshly installed.
     """
-    for option in config.options('CONTROLS'):
+    options = list(DEFAULT['CONTROLS'])
+    if config.has_section('CONTROLS'):
+        options += [option for option in config.options('CONTROLS') if option not in options]
+    for option in options:
         if option.endswith(suffix):
             pin = config.getint('CONTROLS', option)
             if pin:
