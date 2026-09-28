@@ -104,7 +104,7 @@ check_prerequisites() {
         *) warn "testé sur Bookworm et Jammy, détecté : ${codename}" ;;
     esac
 
-    curl -fsS --max-time 10 -o /dev/null https://pypi.org/simple/ \
+    curl -fsS --head --max-time 10 -o /dev/null https://pypi.org/simple/pip/ \
         || fail "pas d'accès à PyPI — vérifier la connexion réseau"
     ok "accès réseau à PyPI"
 
