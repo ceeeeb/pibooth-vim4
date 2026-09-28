@@ -59,6 +59,8 @@ install_file() {
     [[ -f "${FILES_DIR}/${source}" ]] || fail "fichier manquant : files/${source}"
     sudo install -D -o "${owner%%:*}" -g "${owner##*:}" -m "${mode}" \
         "${FILES_DIR}/${source}" "${target}"
+    # Les fichiers de référence visent l'utilisateur pi du Raspberry Pi.
+    sudo sed -i -e "s|/home/pi\b|${PIBOOTH_HOME}|g" -e "s|^User=pi$|User=${PIBOOTH_USER}|" "${target}"
     ok "${target}"
 }
 
