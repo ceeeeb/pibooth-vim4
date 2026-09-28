@@ -144,6 +144,8 @@ step_packages() {
     sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq "${packages[@]}"
     ok "paquets installés"
 
+    [[ "${BOARD}" == "raspberry-pi" ]] || grant_gpio_access
+
     # lpadmin : gestion CUPS. gpio/spi/i2c : accès matériel sans root.
     local groups=(lpadmin gpio spi i2c input video render dialout plugdev)
     for group in "${groups[@]}"; do
@@ -151,6 +153,16 @@ step_packages() {
         sudo adduser "${PIBOOTH_USER}" "${group}" >/dev/null 2>&1 || true
     done
     ok "utilisateur ${PIBOOTH_USER} ajouté aux groupes matériels"
+}
+
+# Raspberry Pi OS livre déjà le groupe gpio et ses droits. Ailleurs, les
+# /dev/gpiochipN appartiennent à root seul : sans cette règle, pibooth ne lit
+# aucun bouton et n'allume aucune LED.
+grant_gpio_access() {
+    getent group gpio >/dev/null || sudo groupadd --system gpio
+    install_file udev/99-pibooth-gpio.rules /etc/udev/rules.d/99-pibooth-gpio.rules root:root 644
+    sudo udevadm control --reload-rules
+    sudo udevadm trigger --subsystem-match=gpio
 }
 
 # --- 2. Environnement Python ----------------------------------------------
