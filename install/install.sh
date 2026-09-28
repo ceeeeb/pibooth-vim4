@@ -33,6 +33,7 @@ HOTSPOT_SHARE_INTERNET="${HOTSPOT_SHARE_INTERNET:-no}"
 GALLERY_PORT="${GALLERY_PORT:-8081}"
 WIFI_PORTAL_PORT="${WIFI_PORTAL_PORT:-8080}"
 DISPLAY_ROTATE="${DISPLAY_ROTATE:-2}"
+TIMEZONE="${TIMEZONE:-Europe/Paris}"
 
 # Renseignée par check_prerequisites : raspberry-pi, khadas-vim4 ou unknown.
 BOARD="unknown"
@@ -40,7 +41,7 @@ BOARD="unknown"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FILES_DIR="${SCRIPT_DIR}/files"
 
-STEPS=(packages python scripts services network display autostart config)
+STEPS=(packages system python scripts services network display autostart config)
 
 # --- Sortie ----------------------------------------------------------------
 
@@ -170,7 +171,43 @@ grant_gpio_access() {
     sudo udevadm trigger --subsystem-match=gpio
 }
 
-# --- 2. Environnement Python ----------------------------------------------
+# --- 2. Réglages système -------------------------------------------------
+
+step_system() {
+    step "Réglages système"
+
+    # Les dates des photos et le dossier du jour suivent le fuseau du système.
+    sudo timedatectl set-timezone "${TIMEZONE}"
+    ok "fuseau horaire : ${TIMEZONE}"
+
+    [[ "${BOARD}" == "raspberry-pi" ]] && return 0
+
+    shorten_disk_commit
+    install_file network/40-wifi-powersave-off \
+        /etc/NetworkManager/dispatcher.d/40-wifi-powersave-off root:root 755
+    disable_camera_isp_server
+}
+
+# Les images Khadas n'écrivent sur l'eMMC que toutes les 10 minutes
+# (commit=600) : une coupure de courant perdrait les dernières photos.
+shorten_disk_commit() {
+    if ! grep -qE '\bcommit=[0-9]+' /etc/fstab; then
+        ok "délai d'écriture disque par défaut"
+        return 0
+    fi
+    sudo sed -i -E 's/\bcommit=[0-9]+/commit=5/' /etc/fstab
+    sudo mount -o remount,commit=5 /
+    ok "écriture sur disque toutes les 5 s au lieu de 10 min"
+}
+
+# Ce service ne sert qu'aux caméras MIPI, et échoue sans elles à chaque démarrage.
+disable_camera_isp_server() {
+    systemctl list-unit-files camera_isp_3a_server.service &>/dev/null || return 0
+    sudo systemctl disable --now camera_isp_3a_server.service >/dev/null 2>&1 || true
+    ok "service camera_isp_3a_server désactivé (caméra USB)"
+}
+
+# --- 3. Environnement Python ----------------------------------------------
 
 step_python() {
     step "Environnement Python et application"
@@ -222,7 +259,7 @@ step_python() {
     fi
 }
 
-# --- 3. Scripts auxiliaires ------------------------------------------------
+# --- 4. Scripts auxiliaires ------------------------------------------------
 
 step_scripts() {
     step "Scripts auxiliaires"
@@ -255,7 +292,7 @@ SUDOERS
     ok "scripts adaptés à la configuration"
 }
 
-# --- 4. Services systemd ---------------------------------------------------
+# --- 5. Services systemd ---------------------------------------------------
 
 step_services() {
     step "Services systemd"
@@ -287,7 +324,7 @@ step_services() {
     done
 }
 
-# --- 5. Réseau : hotspot invités et portail captif -------------------------
+# --- 6. Réseau : hotspot invités et portail captif -------------------------
 
 step_network() {
     step "Configuration réseau"
@@ -381,7 +418,7 @@ disable_captive_portal() {
     info "portail captif désactivé tant que le hotspot n'est pas configuré"
 }
 
-# --- 6. Affichage ----------------------------------------------------------
+# --- 7. Affichage ----------------------------------------------------------
 
 step_display() {
     step "Affichage"
@@ -485,7 +522,7 @@ PATCH
     ok "retournement tactile appliqué (${utils})"
 }
 
-# --- 7. Démarrage automatique ---------------------------------------------
+# --- 8. Démarrage automatique ---------------------------------------------
 
 step_autostart() {
     step "Démarrage automatique"
@@ -498,7 +535,7 @@ step_autostart() {
     info "pibooth démarre avec la session graphique via start-pibooth.sh"
 }
 
-# --- 8. Configuration pibooth ---------------------------------------------
+# --- 9. Configuration pibooth ---------------------------------------------
 
 step_config() {
     step "Configuration pibooth"

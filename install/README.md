@@ -62,8 +62,8 @@ Compter 15 à 30 minutes selon la connexion. Le script est **idempotent** : il p
 ./install.sh --help
 ```
 
-Étapes disponibles pour `--only` : `packages`, `python`, `scripts`, `services`,
-`network`, `display`, `autostart`, `config`.
+Étapes disponibles pour `--only` : `packages`, `system`, `python`, `scripts`,
+`services`, `network`, `display`, `autostart`, `config`.
 
 ### Variables de configuration
 
@@ -80,6 +80,7 @@ Toutes surchargeables par variable d'environnement.
 | `CLIENT_IFACE` | `wlan0` | radio interne, connexion à la box |
 | `GALLERY_PORT` | `8081` | port de la galerie |
 | `DISPLAY_ROTATE` | `2` | rotation écran (2 = 180°) |
+| `TIMEZONE` | `Europe/Paris` | fuseau horaire, qui date les photos |
 
 **Choisir un SSID qui n'existe pas déjà autour de vous.** Si le hotspot porte le
 nom d'un réseau connu des téléphones mais avec un autre mot de passe, ceux-ci
@@ -130,6 +131,11 @@ Le fork `pibooth-ceeeeb` et six plugins sont tirés de PyPI.
 **Services web** — `gallery` (galerie de la session en cours, port 8081),
 `wifi-portal` (ajout d'un réseau Wi-Fi depuis un téléphone, port 8080),
 `captive-portal` (redirection HTTP, port 80), activé seulement avec le hotspot.
+
+**Système** — fuseau horaire. Hors Raspberry Pi : écriture sur disque toutes les
+5 s (les images Khadas attendent 10 min, une coupure perdrait les dernières
+photos), économie d'énergie Wi-Fi coupée à chaque connexion, et service
+`camera_isp_3a_server` désactivé, inutile avec une caméra USB.
 
 **Réseau** — un point d'accès `pibooth-ap` sur le dongle, pendant que la radio
 interne reste cliente de la box. Toutes les connexions client sont épinglées sur
