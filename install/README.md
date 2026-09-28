@@ -129,7 +129,7 @@ Le fork `pibooth-ceeeeb` et six plugins sont tirés de PyPI.
 
 **Services web** — `gallery` (galerie de la session en cours, port 8081),
 `wifi-portal` (ajout d'un réseau Wi-Fi depuis un téléphone, port 8080),
-`captive-portal` (redirection HTTP, port 80).
+`captive-portal` (redirection HTTP, port 80), activé seulement avec le hotspot.
 
 **Réseau** — un point d'accès `pibooth-ap` sur le dongle, pendant que la radio
 interne reste cliente de la box. Toutes les connexions client sont épinglées sur

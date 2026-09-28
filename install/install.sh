@@ -269,7 +269,8 @@ step_services() {
 
     sudo systemctl daemon-reload
 
-    local services=(gallery wifi-portal captive-portal)
+    # captive-portal écoute sur l'adresse du hotspot : l'étape réseau l'active.
+    local services=(gallery wifi-portal)
     for service in "${services[@]}"; do
         sudo systemctl enable --now "${service}.service" >/dev/null 2>&1 || true
     done
@@ -281,8 +282,7 @@ step_services() {
         if [[ "${state}" == "active" ]]; then
             ok "${service} : ${state}"
         else
-            # captive-portal ne démarre qu'une fois le hotspot monté.
-            warn "${service} : ${state} (normal si le hotspot n'est pas encore actif)"
+            warn "${service} : ${state}"
         fi
     done
 }
@@ -295,6 +295,7 @@ step_network() {
     if [[ -z "${HOTSPOT_PASSWORD}" ]]; then
         warn "HOTSPOT_PASSWORD vide : hotspot non configuré"
         info "relancer avec : HOTSPOT_PASSWORD='motdepasse' ./install.sh --only network"
+        disable_captive_portal
         return 0
     fi
     if (( ${#HOTSPOT_PASSWORD} < 8 )); then
@@ -314,6 +315,7 @@ step_network() {
     if [[ ! -d "/sys/class/net/${HOTSPOT_IFACE}" ]]; then
         warn "interface ${HOTSPOT_IFACE} absente : dongle USB non détecté"
         info "le hotspot exige une seconde radio (voir README, section matériel)"
+        disable_captive_portal
         return 0
     fi
 
@@ -368,7 +370,15 @@ CONF
         && ok "hotspot actif sur ${HOTSPOT_ADDRESS}" \
         || warn "hotspot non démarré — vérifier 'journalctl -u NetworkManager'"
 
+    sudo systemctl enable captive-portal.service >/dev/null 2>&1 || true
     sudo systemctl restart captive-portal.service 2>/dev/null || true
+}
+
+# Sans hotspot, l'adresse du portail n'existe pas et le service redémarrerait
+# en boucle.
+disable_captive_portal() {
+    sudo systemctl disable --now captive-portal.service >/dev/null 2>&1 || true
+    info "portail captif désactivé tant que le hotspot n'est pas configuré"
 }
 
 # --- 6. Affichage ----------------------------------------------------------
