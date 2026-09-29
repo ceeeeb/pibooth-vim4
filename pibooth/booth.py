@@ -11,13 +11,11 @@ import shutil
 import logging
 import argparse
 import multiprocessing
-from warnings import filterwarnings
 
 import pygame
-from gpiozero import Device, Button, ButtonBoard, LEDBoard, pi_info
-from gpiozero.exc import BadPinFactory, PinFactoryFallback
 
 import pibooth
+from pibooth import hardware
 from pibooth import fonts
 from pibooth import language
 from pibooth.counters import Counters
@@ -30,98 +28,8 @@ from pibooth.config import PiConfigParser, PiConfigMenu
 from pibooth.printer import PRINTER_TASKS_UPDATED, Printer
 
 
-# Set the default pin factory to a mock factory if pibooth is not started a Raspberry Pi
-try:
-    filterwarnings("ignore", category=PinFactoryFallback)
-    GPIO_INFO = "on Raspberry pi {0}".format(pi_info().model)
-except BadPinFactory:
-    from gpiozero.pins.mock import MockFactory
-    Device.pin_factory = MockFactory()
-    GPIO_INFO = "without physical GPIO, fallback to GPIO mock"
-
-
 BUTTONDOWN = pygame.USEREVENT + 1
 
-
-
-# Workaround for ButtonBoard bug in gpiozero 2.0.1
-class LgpioButton:
-    """Simple button using lgpio directly with polling."""
-    def __init__(self, gpio_num, hold_time=0.2):
-        import lgpio
-        import threading
-        self._gpio = gpio_num
-        self._hold_time = hold_time
-        self._handle = lgpio.gpiochip_open(0)
-        lgpio.gpio_claim_input(self._handle, gpio_num, lgpio.SET_PULL_UP)
-        self._callback = None
-        self._running = True
-        self._last_state = 1  # Not pressed
-        self._press_start = 0
-        self._thread = threading.Thread(target=self._monitor, daemon=True)
-        self._thread.start()
-    
-    def _monitor(self):
-        import lgpio
-        import time
-        while self._running:
-            try:
-                current = lgpio.gpio_read(self._handle, self._gpio)
-                if current == 0 and self._last_state == 1:
-                    # Button just pressed
-                    self._press_start = time.time()
-                    LOGGER.debug("LgpioButton GPIO%s: PRESSED", self._gpio)
-                elif current == 0 and self._last_state == 0:
-                    # Button still pressed
-                    if self._callback and (time.time() - self._press_start) >= self._hold_time:
-                        LOGGER.debug("LgpioButton GPIO%s: HOLD triggered, calling callback", self._gpio)
-                        self._callback()
-                        self._press_start = time.time() + 999  # Prevent repeat
-                self._last_state = current
-            except Exception as e:
-                LOGGER.debug("LgpioButton GPIO%s: error %s", self._gpio, e)
-            time.sleep(0.05)
-    
-    @property
-    def when_held(self):
-        return self._callback
-    
-    @when_held.setter
-    def when_held(self, callback):
-        self._callback = callback
-    
-    @property
-    def value(self):
-        import lgpio
-        # Return 1 when pressed (GPIO LOW), 0 when not pressed (GPIO HIGH)
-        return 1 - lgpio.gpio_read(self._handle, self._gpio)
-    
-    def close(self):
-        self._running = False
-        import lgpio
-        try:
-            lgpio.gpiochip_close(self._handle)
-        except:
-            pass
-
-
-class ButtonsWrapper:
-    """Wrapper that uses individual Button objects."""
-    def __init__(self, capture_pin, printer_pin, hold_time, pull_up):
-        self.capture = Button(capture_pin, pull_up=pull_up, hold_time=hold_time)
-        # Use lgpio directly for printer button due to gpiozero bug
-        printer_gpio = int(printer_pin.replace("BOARD", ""))
-        # Convert BOARD to BCM: BOARD32 = GPIO12
-        board_to_bcm = {32: 12, 11: 17, 36: 16, 37: 26, 33: 13, 31: 6}
-        self.printer = LgpioButton(board_to_bcm.get(printer_gpio, 12), hold_time=hold_time)
-    
-    @property
-    def value(self):
-        return (self.capture.value, self.printer.value)
-    
-    def close(self):
-        self.capture.close()
-        self.printer.close()
 
 
 class PiApplication(object):
@@ -145,10 +53,12 @@ class PiApplication(object):
     :type count: :py:class:`pibooth.counters.Counters`
     :attr camera: camera used
     :type camera: :py:class:`pibooth.camera.base.BaseCamera`
+    :attr board: GPIO capabilities of the machine running pibooth
+    :type board: :py:class:`pibooth.hardware.Board`
     :attr buttons: access to hardware buttons ``capture`` and ``printer``
-    :type buttons: :py:class:`gpiozero.ButtonBoard`
+    :type buttons: :py:class:`pibooth.hardware.ButtonGroup`
     :attr leds: access to hardware LED ``capture`` and ``printer``
-    :attr leds: :py:class:`gpiozero.LEDBoard`
+    :type leds: :py:class:`pibooth.hardware.LedGroup`
     :attr printer: printer used
     :type printer: :py:class:`pibooth.printer.Printer`
     """
@@ -211,16 +121,17 @@ class PiApplication(object):
 
         self.camera = self._pm.hook.pibooth_setup_camera(cfg=self._config)
 
-        self.buttons = ButtonsWrapper(capture_pin="BOARD" + config.get('CONTROLS', 'picture_btn_pin'),
-                                   printer_pin="BOARD" + config.get('CONTROLS', 'print_btn_pin'),
-                                   hold_time=config.getfloat('CONTROLS', 'debounce_delay'),
-                                   pull_up=True)
+        self.board = hardware.find_board()
+        hold_time = config.getfloat('CONTROLS', 'debounce_delay')
+        self.buttons = hardware.ButtonGroup(
+            capture=self.board.create_button(config.getint('CONTROLS', 'picture_btn_pin'), hold_time),
+            printer=self.board.create_button(config.getint('CONTROLS', 'print_btn_pin'), hold_time))
         self.buttons.capture.when_held = self._on_button_capture_held
         self.buttons.printer.when_held = self._on_button_printer_held
-        LOGGER.info("Buttons initialized: capture.value=%s printer.value=%s", self.buttons.capture.value, self.buttons.printer.value)
 
-        self.leds = LEDBoard(capture="BOARD" + config.get('CONTROLS', 'picture_led_pin'),
-                             printer="BOARD" + config.get('CONTROLS', 'print_led_pin'))
+        self.leds = hardware.LedGroup(
+            capture=self.board.create_led(config.getint('CONTROLS', 'picture_led_pin')),
+            printer=self.board.create_led(config.getint('CONTROLS', 'print_led_pin')))
 
         self.printer = Printer(config.get('PRINTER', 'printer_name'),
                                config.getint('PRINTER', 'max_pages'),
@@ -580,7 +491,8 @@ def main():
         config.save(default=True)
         plugin_manager.hook.pibooth_reset(cfg=config, hard=True)
     else:
-        LOGGER.info("Starting the photo booth application %s", GPIO_INFO)
+        LOGGER.info("Starting the photo booth application on %s",
+                    hardware.get_board_model() or 'a machine without GPIO')
         app = PiApplication(config, plugin_manager)
         app.main_loop()
 
