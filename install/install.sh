@@ -128,7 +128,7 @@ step_packages() {
         libsdl2-ttf-2.0-0 libsdl2-gfx-1.0-0
         libgphoto2-6 libgphoto2-dev libgphoto2-port12
         python3-numpy python3-opencv python3-flask
-        cups libcups2-dev
+        cups libcups2-dev python3-cups
         network-manager nftables dnsmasq-base
         ffmpeg fonts-liberation2 fonts-noto-color-emoji
         # Pillow 9.2.0, figé par pibooth, n'a pas de wheel pour Python 3.11+ :
@@ -261,6 +261,8 @@ step_python() {
         pibooth-background-changer
         pibooth-extra-lights-vim4
         pibooth-forget-button
+        # pibooth n'imprime qu'avec pycups (APT, python3-cups) et pycups-notify.
+        pycups-notify
     )
 
     # Le module caméra CSI du Pi n'a pas d'équivalent ailleurs : la caméra y est
