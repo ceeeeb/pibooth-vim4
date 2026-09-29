@@ -135,7 +135,7 @@ Le fork `pibooth-ceeeeb` et six plugins sont tirés de PyPI.
 
 **Système** — fuseau horaire. Hors Raspberry Pi : écriture sur disque toutes les
 5 s (les images Khadas attendent 10 min, une coupure perdrait les dernières
-photos), puce Wi-Fi du VIM4 réglée pour le pays (la Chine par défaut), et service
+photos), journal système conservé d'un démarrage à l'autre, puce Wi-Fi du VIM4 réglée pour le pays (la Chine par défaut), et service
 `camera_isp_3a_server` désactivé, inutile avec une caméra USB.
 
 **Réseau** — un point d'accès `pibooth-ap` sur le dongle, pendant que la radio

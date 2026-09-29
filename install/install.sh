@@ -184,6 +184,7 @@ step_system() {
     [[ "${BOARD}" == "raspberry-pi" ]] && return 0
 
     shorten_disk_commit
+    keep_journal
     set_wifi_country
     disable_camera_isp_server
 }
@@ -198,6 +199,18 @@ shorten_disk_commit() {
     sudo sed -i -E 's/\bcommit=[0-9]+/commit=5/' /etc/fstab
     sudo mount -o remount,commit=5 /
     ok "écriture sur disque toutes les 5 s au lieu de 10 min"
+}
+
+# Les images Khadas gardent le journal en mémoire seulement : après un blocage,
+# plus rien n'explique ce qui s'est passé. 100 Mo suffisent à plusieurs semaines.
+keep_journal() {
+    sudo install -D -o root -g root -m 644 /dev/stdin /etc/systemd/journald.conf.d/50-pibooth-persistent.conf << CONF
+[Journal]
+Storage=persistent
+SystemMaxUse=100M
+CONF
+    sudo systemctl restart systemd-journald
+    ok "journal système conservé d'un démarrage à l'autre"
 }
 
 # Sans pays déclaré, le pilote bcmdhd du VIM4 règle la puce Wi-Fi pour la Chine :
