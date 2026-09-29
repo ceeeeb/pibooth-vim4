@@ -82,8 +82,6 @@ Toutes surchargeables par variable d'environnement.
 | `DISPLAY_ROTATE` | `2` | rotation écran (2 = 180°) |
 | `TIMEZONE` | `Europe/Paris` | fuseau horaire, qui date les photos |
 | `WIFI_COUNTRY` | `FR` | pays de la puce Wi-Fi du VIM4 (canaux et puissances autorisés) |
-| `MAINS_HZ` | `50` | fréquence du secteur, contre le scintillement de l'éclairage |
-| `CAMERA_FOCUS` | `295` | mise au point fixe de l'Arducam B0304, nette de 50 cm à 3 m. Vide = autofocus |
 
 **Choisir un SSID qui n'existe pas déjà autour de vous.** Si le hotspot porte le
 nom d'un réseau connu des téléphones mais avec un autre mot de passe, ceux-ci
@@ -135,8 +133,7 @@ Le fork `pibooth-ceeeeb` et six plugins sont tirés de PyPI.
 `wifi-portal` (ajout d'un réseau Wi-Fi depuis un téléphone, port 8080),
 `captive-portal` (redirection HTTP, port 80), activé seulement avec le hotspot.
 
-**Système** — fuseau horaire, et réglages de l'Arducam B0304 réappliqués à chaque
-branchement (secteur 50 Hz au lieu de 60, mise au point fixe). Hors Raspberry Pi : écriture sur disque toutes les
+**Système** — fuseau horaire. Hors Raspberry Pi : écriture sur disque toutes les
 5 s (les images Khadas attendent 10 min, une coupure perdrait les dernières
 photos), puce Wi-Fi du VIM4 réglée pour le pays (la Chine par défaut), et service
 `camera_isp_3a_server` désactivé, inutile avec une caméra USB.

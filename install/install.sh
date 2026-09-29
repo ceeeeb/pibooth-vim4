@@ -35,9 +35,6 @@ WIFI_PORTAL_PORT="${WIFI_PORTAL_PORT:-8080}"
 DISPLAY_ROTATE="${DISPLAY_ROTATE:-2}"
 TIMEZONE="${TIMEZONE:-Europe/Paris}"
 WIFI_COUNTRY="${WIFI_COUNTRY:-FR}"
-MAINS_HZ="${MAINS_HZ:-50}"
-# Mise au point fixe de l'Arducam B0304, nette de 50 cm à 3 m (vide = autofocus).
-CAMERA_FOCUS="${CAMERA_FOCUS-295}"
 
 # Renseignée par check_prerequisites : raspberry-pi, khadas-vim4 ou unknown.
 BOARD="unknown"
@@ -133,7 +130,7 @@ step_packages() {
         python3-numpy python3-opencv python3-flask
         cups libcups2-dev
         network-manager nftables dnsmasq-base
-        ffmpeg fonts-liberation2 fonts-noto-color-emoji v4l-utils
+        ffmpeg fonts-liberation2 fonts-noto-color-emoji
         # Pillow 9.2.0, figé par pibooth, n'a pas de wheel pour Python 3.11+ :
         # pip le compile, et sans ces en-têtes il ne sait plus écrire de texte.
         libfreetype-dev libjpeg-dev zlib1g-dev libpng-dev
@@ -184,40 +181,11 @@ step_system() {
     sudo timedatectl set-timezone "${TIMEZONE}"
     ok "fuseau horaire : ${TIMEZONE}"
 
-    configure_usb_camera
-
     [[ "${BOARD}" == "raspberry-pi" ]] && return 0
 
     shorten_disk_commit
     set_wifi_country
     disable_camera_isp_server
-}
-
-# L'Arducam B0304 filtre le scintillement du secteur à 60 Hz, ce qui raye les
-# photos sous un éclairage à 50 Hz, et son autofocus continu cherche pendant le
-# compte à rebours. Les réglages UVC se perdent au débranchement : udev les
-# réapplique à chaque branchement. La valeur de mise au point sort d'un
-# étalonnage sur cette caméra : 240 correspond à l'infini, 320 à 60 cm.
-configure_usb_camera() {
-    local power_line=1
-    [[ "${MAINS_HZ}" == "60" ]] && power_line=2
-
-    local match='ACTION=="add", SUBSYSTEM=="video4linux", ATTRS{idVendor}=="0c40", ATTRS{idProduct}=="0304", ATTR{index}=="0"'
-    local controls="power_line_frequency=${power_line}"
-    local focus_run=""
-    local summary="secteur ${MAINS_HZ} Hz, autofocus conservé"
-    if [[ -n "${CAMERA_FOCUS}" ]]; then
-        # L'autofocus doit être coupé avant que la position puisse être fixée.
-        controls+=",focus_automatic_continuous=0"
-        focus_run=", RUN+=\"/usr/bin/v4l2-ctl -d \$devnode -c focus_absolute=${CAMERA_FOCUS}\""
-        summary="secteur ${MAINS_HZ} Hz, mise au point fixe ${CAMERA_FOCUS}"
-    fi
-
-    echo "${match}, RUN+=\"/usr/bin/v4l2-ctl -d \$devnode -c ${controls}\"${focus_run}" \
-        | sudo install -D -o root -g root -m 644 /dev/stdin /etc/udev/rules.d/99-pibooth-camera.rules
-    sudo udevadm control --reload-rules
-    sudo udevadm trigger --subsystem-match=video4linux --action=add
-    ok "caméra Arducam : ${summary}"
 }
 
 # Les images Khadas n'écrivent sur l'eMMC que toutes les 10 minutes
