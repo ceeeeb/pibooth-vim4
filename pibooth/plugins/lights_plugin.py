@@ -33,7 +33,7 @@ class LightsPlugin(object):
                 time.sleep(1)  # Just to let the LED switched on
                 app.leds.blink(on_time=self.blink_time, off_time=self.blink_time)
 
-        if not app.previous_picture_file and app.leds.printer._controller:  # _controller == blinking
+        if not app.previous_picture_file and app.leds.printer.is_blinking:
             app.leds.printer.off()
 
     @pibooth.hookimpl

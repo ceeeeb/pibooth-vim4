@@ -32,6 +32,7 @@ class CameraPlugin(object):
                        cfg.gettuple('CAMERA', 'rotation', int, 2),
                        cfg.getboolean('CAMERA', 'flip'),
                        cfg.getboolean('CAMERA', 'delete_internal_memory'))
+        cam.set_controls(cfg.getint('CAMERA', 'focus'), cfg.getint('CAMERA', 'mains_hz'))
         outcome.force_result(cam)
 
     @pibooth.hookimpl

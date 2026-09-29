@@ -1,0 +1,3 @@
+# Outside Raspberry Pi OS, /dev/gpiochipN is readable by root only: hand it to
+# the gpio group so pibooth drives buttons and LEDs without root.
+SUBSYSTEM=="gpio", KERNEL=="gpiochip*", GROUP="gpio", MODE="0660"

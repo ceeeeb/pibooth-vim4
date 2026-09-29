@@ -5,6 +5,7 @@ from PIL import Image, ImageDraw
 
 from pibooth import fonts
 from pibooth.pictures import sizing
+from pibooth.utils import LOGGER
 
 
 class BaseCamera(object):
@@ -45,6 +46,14 @@ class BaseCamera(object):
         """Specific camera initialization.
         """
         pass
+
+    def set_controls(self, focus, mains_hz):
+        """Set the focus position (0 for autofocus) and the mains frequency
+        filtered against lighting flicker (0 to keep the camera setting).
+        Only the cameras driven through V4L2 support it.
+        """
+        if focus or mains_hz:
+            LOGGER.warning("Focus and mains frequency are not configurable on this camera")
 
     def _show_overlay(self, text, alpha):
         """Add an image as an overlay.
