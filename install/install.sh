@@ -34,6 +34,7 @@ GALLERY_PORT="${GALLERY_PORT:-8081}"
 WIFI_PORTAL_PORT="${WIFI_PORTAL_PORT:-8080}"
 DISPLAY_ROTATE="${DISPLAY_ROTATE:-2}"
 TIMEZONE="${TIMEZONE:-Europe/Paris}"
+WIFI_COUNTRY="${WIFI_COUNTRY:-FR}"
 
 # Renseignée par check_prerequisites : raspberry-pi, khadas-vim4 ou unknown.
 BOARD="unknown"
@@ -183,8 +184,7 @@ step_system() {
     [[ "${BOARD}" == "raspberry-pi" ]] && return 0
 
     shorten_disk_commit
-    install_file network/40-wifi-powersave-off \
-        /etc/NetworkManager/dispatcher.d/40-wifi-powersave-off root:root 755
+    set_wifi_country
     disable_camera_isp_server
 }
 
@@ -198,6 +198,21 @@ shorten_disk_commit() {
     sudo sed -i -E 's/\bcommit=[0-9]+/commit=5/' /etc/fstab
     sudo mount -o remount,commit=5 /
     ok "écriture sur disque toutes les 5 s au lieu de 10 min"
+}
+
+# Sans pays déclaré, le pilote bcmdhd du VIM4 règle la puce Wi-Fi pour la Chine :
+# canaux et puissances d'un autre pays, dont des canaux 5 GHz interdits ou
+# manquants. Le fichier appartient au paquet de la carte, qu'une mise à jour
+# peut réécrire : relancer alors cette étape.
+set_wifi_country() {
+    local config=/lib/firmware/brcm/config_bcm43752a2_ag.txt
+    [[ -f "${config}" ]] || return 0
+    if grep -q '^ccode=' "${config}"; then
+        sudo sed -i "s/^ccode=.*/ccode=${WIFI_COUNTRY}/" "${config}"
+    else
+        echo "ccode=${WIFI_COUNTRY}" | sudo tee -a "${config}" >/dev/null
+    fi
+    ok "Wi-Fi réglé pour le pays ${WIFI_COUNTRY} (au prochain démarrage)"
 }
 
 # Ce service ne sert qu'aux caméras MIPI, et échoue sans elles à chaque démarrage.

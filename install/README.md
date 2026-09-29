@@ -81,6 +81,7 @@ Toutes surchargeables par variable d'environnement.
 | `GALLERY_PORT` | `8081` | port de la galerie |
 | `DISPLAY_ROTATE` | `2` | rotation écran (2 = 180°) |
 | `TIMEZONE` | `Europe/Paris` | fuseau horaire, qui date les photos |
+| `WIFI_COUNTRY` | `FR` | pays de la puce Wi-Fi du VIM4 (canaux et puissances autorisés) |
 
 **Choisir un SSID qui n'existe pas déjà autour de vous.** Si le hotspot porte le
 nom d'un réseau connu des téléphones mais avec un autre mot de passe, ceux-ci
@@ -134,7 +135,7 @@ Le fork `pibooth-ceeeeb` et six plugins sont tirés de PyPI.
 
 **Système** — fuseau horaire. Hors Raspberry Pi : écriture sur disque toutes les
 5 s (les images Khadas attendent 10 min, une coupure perdrait les dernières
-photos), économie d'énergie Wi-Fi coupée à chaque connexion, et service
+photos), puce Wi-Fi du VIM4 réglée pour le pays (la Chine par défaut), et service
 `camera_isp_3a_server` désactivé, inutile avec une caméra USB.
 
 **Réseau** — un point d'accès `pibooth-ap` sur le dongle, pendant que la radio
