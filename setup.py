@@ -7,7 +7,7 @@ long_description = open(README, encoding='utf-8').read() if osp.isfile(README) e
 
 setup(
     name='pibooth-ceeeeb',
-    version='2.0.8.3',
+    version='2.0.9',
     description='A photo booth application in pure Python for the Raspberry Pi (custom fork by ceeeeb).',
     long_description=long_description,
     long_description_content_type='text/x-rst',
@@ -16,7 +16,7 @@ setup(
     license='MIT',
     packages=find_packages(),
     include_package_data=True,
-    package_data={'pibooth': ['fonts/*', 'pictures/*', 'hardware/*.ini']},
+    package_data={'pibooth': ['fonts/*', 'pictures/*', 'pictures/assets/*', 'hardware/*.ini']},
     install_requires=[
         'Pillow==9.2.0',
         'pygame>=1.9.6',
