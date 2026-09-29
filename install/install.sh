@@ -285,11 +285,31 @@ step_python() {
         || fail "installation de pibooth-picture-template échouée"
     packages+=(pibooth-picture-template)
 
+    ensure_fork_owns_pibooth "${pip}"
+
     for package in "${packages[@]}"; do
         local version
         version="$("${pip}" show "${package}" 2>/dev/null | awk '/^Version:/{print $2}')"
         [[ -n "${version}" ]] && ok "${package} ${version}" || warn "${package} absent"
     done
+}
+
+# pibooth-ceeeeb et le pibooth amont installent le même module : un plugin qui
+# dépend encore de l'amont le fait installer par-dessus le fork. Désinstaller
+# l'amont supprime aussi les fichiers partagés, d'où la réinstallation du fork.
+ensure_fork_owns_pibooth() {
+    local pip="$1" fork_version module_version
+    fork_version="$("${pip}" show pibooth-ceeeeb 2>/dev/null | awk '/^Version:/{print $2}')"
+    if "${pip}" show pibooth &>/dev/null; then
+        warn "pibooth amont installé par un plugin : retiré au profit du fork"
+        sudo -u "${PIBOOTH_USER}" "${pip}" uninstall --quiet --yes pibooth
+        sudo -u "${PIBOOTH_USER}" "${pip}" install --quiet --force-reinstall --no-deps \
+            "pibooth-ceeeeb==${fork_version}" || fail "réinstallation de pibooth-ceeeeb échouée"
+    fi
+    module_version="$(cd / && "${VENV_DIR}/bin/python" -c 'import pibooth; print(pibooth.__version__)' 2>/dev/null)"
+    [[ "${module_version}" == "${fork_version}" ]] \
+        || fail "le module pibooth (${module_version:-absent}) n'est pas celui du fork (${fork_version})"
+    ok "module pibooth fourni par pibooth-ceeeeb ${fork_version}"
 }
 
 # --- 4. Scripts auxiliaires ------------------------------------------------

@@ -127,7 +127,9 @@ Si le tactile répond un jour à l'opposé après une mise à jour pip :
 **Application** — un venv en `~/pibooth/pibooth` créé avec
 `--system-site-packages`, indispensable car `picamera2` et `python3-opencv`
 proviennent d'APT et ne s'installent pas correctement via pip sur Raspberry Pi OS.
-Le fork `pibooth-ceeeeb` et ses plugins sont tirés de PyPI.
+Le fork `pibooth-ceeeeb` et ses plugins sont tirés de PyPI. Le fork et le
+pibooth amont installent le même module `pibooth` : si un plugin tiers fait
+installer l'amont, l'installateur le retire et réinstalle le fork.
 
 **Mise en page** — les invités choisissent leur modèle sur l'écran d'accueil en
 faisant glisser le doigt : la dernière photo y est réassemblée dans le modèle
