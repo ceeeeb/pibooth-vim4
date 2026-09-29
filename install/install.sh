@@ -129,6 +129,8 @@ step_packages() {
         libgphoto2-6 libgphoto2-dev libgphoto2-port12
         python3-numpy python3-opencv python3-flask
         cups libcups2-dev python3-cups
+        # tkinter : fenêtre d'infos Wi-Fi affichée avant pibooth.
+        python3-tk
         network-manager nftables dnsmasq-base
         ffmpeg fonts-liberation2 fonts-noto-color-emoji
         # Pillow 9.2.0, figé par pibooth, n'a pas de wheel pour Python 3.11+ :
