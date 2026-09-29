@@ -191,8 +191,8 @@ step_system() {
 # Les images Khadas n'écrivent sur l'eMMC que toutes les 10 minutes
 # (commit=600) : une coupure de courant perdrait les dernières photos.
 shorten_disk_commit() {
-    if ! grep -qE '\bcommit=[0-9]+' /etc/fstab; then
-        ok "délai d'écriture disque par défaut"
+    if ! grep -E '\bcommit=[0-9]+' /etc/fstab | grep -qvE '\bcommit=5\b'; then
+        ok "écriture sur disque toutes les 5 s"
         return 0
     fi
     sudo sed -i -E 's/\bcommit=[0-9]+/commit=5/' /etc/fstab
