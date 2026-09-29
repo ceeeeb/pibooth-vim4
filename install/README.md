@@ -127,7 +127,18 @@ Si le tactile répond un jour à l'opposé après une mise à jour pip :
 **Application** — un venv en `~/pibooth/pibooth` créé avec
 `--system-site-packages`, indispensable car `picamera2` et `python3-opencv`
 proviennent d'APT et ne s'installent pas correctement via pip sur Raspberry Pi OS.
-Le fork `pibooth-ceeeeb` et six plugins sont tirés de PyPI.
+Le fork `pibooth-ceeeeb` et ses plugins sont tirés de PyPI.
+
+**Mise en page** — les invités choisissent leur modèle sur l'écran d'accueil en
+faisant glisser le doigt : la dernière photo y est réassemblée dans le modèle
+choisi (plugin `pibooth-template-chooser`, sur `pibooth-picture-template`).
+Neuf modèles pour la carte SELPHY 10 × 15 sont copiés dans
+`~/.config/pibooth/templates` — photomaton, Hollywood, anniversaire, art déco,
+quatre mariages, carte postale vintage — chacun avec une page 1 photo et une
+page 4 photos, modifiables dans draw.io. Leurs polices libres (licence OFL)
+vont dans `~/.config/pibooth/fonts`. Les noms et la date restent `footer_text1`
+et `footer_text2` de `pibooth.cfg`. Les générateurs des modèles sont dans
+`files/templates/generators`.
 
 **Services web** — `gallery` (galerie de la session en cours, port 8081),
 `wifi-portal` (ajout d'un réseau Wi-Fi depuis un téléphone, port 8080),

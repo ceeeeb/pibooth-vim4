@@ -260,9 +260,9 @@ step_python() {
         pibooth-nextcloud
         pibooth-pcloud
         pibooth-gallery-qr
-        pibooth-background-changer
         pibooth-extra-lights-vim4
         pibooth-forget-button
+        pibooth-template-chooser
         # pibooth n'imprime qu'avec pycups (APT, python3-cups) et pycups-notify.
         pycups-notify
     )
@@ -279,16 +279,17 @@ step_python() {
     sudo -u "${PIBOOTH_USER}" "${pip}" install --quiet --upgrade "${packages[@]}" \
         || fail "installation pip échouée"
 
+    # Mise en page par modèles draw.io. Ce plugin dépend du pibooth amont, qui
+    # écraserait le fork : ses dépendances sont déjà là, il s'installe sans elles.
+    sudo -u "${PIBOOTH_USER}" "${pip}" install --quiet --upgrade --no-deps pibooth-picture-template \
+        || fail "installation de pibooth-picture-template échouée"
+    packages+=(pibooth-picture-template)
+
     for package in "${packages[@]}"; do
         local version
         version="$("${pip}" show "${package}" 2>/dev/null | awk '/^Version:/{print $2}')"
         [[ -n "${version}" ]] && ok "${package} ${version}" || warn "${package} absent"
     done
-
-    # rembg (remplacement de fond) télécharge son modèle au premier lancement.
-    if "${pip}" show rembg &>/dev/null; then
-        info "rembg présent : le modèle silueta (~45 Mo) sera téléchargé au 1er usage"
-    fi
 }
 
 # --- 4. Scripts auxiliaires ------------------------------------------------
@@ -590,6 +591,22 @@ step_config() {
     local pictures_dir="${PIBOOTH_HOME}/Pictures/pibooth"
     sudo -u "${PIBOOTH_USER}" mkdir -p "${pictures_dir}"
     ok "répertoire photos : ${pictures_dir}"
+
+    install_templates "${config_dir}"
+}
+
+# Modèles de mise en page proposés aux invités, et les polices de leurs textes.
+# Un modèle déjà présent est conservé : il a pu être retouché dans draw.io.
+install_templates() {
+    local config_dir="$1" owner="${PIBOOTH_USER}:${PIBOOTH_USER}"
+    local added=0 source name
+    for source in "${FILES_DIR}"/templates/*.xml "${FILES_DIR}"/templates/*.cfg "${FILES_DIR}"/fonts/*; do
+        name="${source#"${FILES_DIR}"/}"
+        [[ -e "${config_dir}/${name}" ]] && continue
+        sudo install -D -o "${owner%%:*}" -g "${owner##*:}" -m 644 "${source}" "${config_dir}/${name}"
+        added=$((added + 1))
+    done
+    ok "modèles de mise en page et polices : ${added} fichier(s) ajouté(s) dans ${config_dir}"
 }
 
 # --- Résumé ----------------------------------------------------------------

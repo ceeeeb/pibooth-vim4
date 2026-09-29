@@ -189,8 +189,9 @@ Les plugins GPIO externes sont portés dans `~/git/pibooth-extra-lights-vim4` et
 
 `~/git/pibooth-background-changer` ne touche pas au GPIO, mais choisissait son
 modèle de détourage d'après la seule famille Raspberry Pi : le VIM4 tombait dans
-la branche « ordinateur de bureau ». Il reconnaît maintenant la carte, et toute
-carte munie d'un device tree reçoit le modèle léger.
+la branche « ordinateur de bureau ». Il reconnaît maintenant la carte et choisit
+`u2net_human_seg` sur le VIM4. L'installateur ne l'installe plus : le choix du
+modèle de mise en page, par glissement sur l'écran d'accueil, l'a remplacé.
 
 Le reste des étapes (services, hotspot, portail captif, galerie, démarrage
 automatique) ne dépend pas de la carte. Le sudoers du portail Wi-Fi est limité
