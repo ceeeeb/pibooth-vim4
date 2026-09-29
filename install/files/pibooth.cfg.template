@@ -122,6 +122,12 @@ resolution = (4608,2592)
 # Delete captures from camera internal memory (when applicable)
 delete_internal_memory = False
 
+# Fixed focus position of a V4L2 camera, 0 to keep its autofocus (295 keeps the Arducam B0304 sharp from 50 cm to 3 m)
+focus = 295
+
+# Mains frequency (50 or 60) filtered against lighting flicker by a V4L2 camera, 0 to keep the camera setting
+mains_hz = 50
+
 # Boolean value to use Picamera2 library and the new raspberry pi camera v3
 # Required by 'picamera2' plugin
 use_picamera2 = 1

@@ -12,6 +12,7 @@ from pibooth.pictures import sizing
 from pibooth.utils import PoolingTimer, LOGGER
 from pibooth.language import get_translated_text
 from pibooth.camera.base import BaseCamera
+from pibooth.camera import v4l2
 
 
 def get_cv_camera_proxy(port=None):
@@ -71,6 +72,33 @@ class CvCamera(BaseCamera):
         self._preview_resolution = (self._cam.get(cv2.CAP_PROP_FRAME_WIDTH), self._cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
         LOGGER.debug("Preview resolution is %s", self._preview_resolution)
         self._cam.set(cv2.CAP_PROP_ISO_SPEED, self.preview_iso)
+
+    def set_controls(self, focus, mains_hz):
+        """Set the focus and the mains frequency through V4L2, as OpenCV does
+        not expose the latter. UVC cameras forget them when unplugged.
+        """
+        device = v4l2.find_opened_device()
+        if not device:
+            super(CvCamera, self).set_controls(focus, mains_hz)
+            return
+
+        controls = []
+        if mains_hz in v4l2.POWER_LINE_MENU:
+            controls.append(('mains frequency', v4l2.CID_POWER_LINE_FREQUENCY, v4l2.POWER_LINE_MENU[mains_hz]))
+        elif mains_hz:
+            LOGGER.warning("Invalid mains frequency %s Hz (should be 50 or 60), camera setting kept", mains_hz)
+        if focus:
+            # The autofocus must be off before the focus position can be set
+            controls.append(('autofocus', v4l2.CID_FOCUS_AUTO, 0))
+            controls.append(('focus', v4l2.CID_FOCUS_ABSOLUTE, focus))
+
+        for name, control_id, value in controls:
+            try:
+                v4l2.set_control(device, control_id, value)
+            except OSError as ex:
+                LOGGER.warning("Camera %s refuses the %s setting: %s", device, name, ex)
+        LOGGER.info("Camera %s: focus %s, mains %s", device,
+                    focus or 'auto', "{} Hz".format(mains_hz) if mains_hz else 'unchanged')
 
     def _show_overlay(self, text, alpha):
         """Add an image as an overlay.
