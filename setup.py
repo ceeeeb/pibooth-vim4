@@ -16,7 +16,7 @@ setup(
     license='MIT',
     packages=find_packages(),
     include_package_data=True,
-    package_data={'pibooth': ['fonts/*', 'pictures/*', 'hardware/*.ini']},
+    package_data={'pibooth': ['fonts/*', 'pictures/*', 'pictures/assets/*', 'hardware/*.ini']},
     install_requires=[
         'Pillow==9.2.0',
         'pygame>=1.9.6',
