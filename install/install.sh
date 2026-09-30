@@ -279,17 +279,38 @@ step_python() {
     sudo -u "${PIBOOTH_USER}" "${pip}" install --quiet --upgrade "${packages[@]}" \
         || fail "installation pip échouée"
 
-    # Mise en page par modèles draw.io. Ce plugin dépend du pibooth amont, qui
-    # écraserait le fork : ses dépendances sont déjà là, il s'installe sans elles.
-    sudo -u "${PIBOOTH_USER}" "${pip}" install --quiet --upgrade --no-deps pibooth-picture-template \
-        || fail "installation de pibooth-picture-template échouée"
-    packages+=(pibooth-picture-template)
+    # pibooth-template-chooser intègre désormais pibooth-picture-template : les
+    # deux déclarent [PICTURE] template et pibooth refuserait de démarrer.
+    if "${pip}" show pibooth-picture-template &>/dev/null; then
+        sudo -u "${PIBOOTH_USER}" "${pip}" uninstall --quiet --yes pibooth-picture-template
+        ok "pibooth-picture-template retiré (intégré à pibooth-template-chooser)"
+    fi
+
+    ensure_fork_owns_pibooth "${pip}"
 
     for package in "${packages[@]}"; do
         local version
         version="$("${pip}" show "${package}" 2>/dev/null | awk '/^Version:/{print $2}')"
         [[ -n "${version}" ]] && ok "${package} ${version}" || warn "${package} absent"
     done
+}
+
+# pibooth-ceeeeb et le pibooth amont installent le même module : un plugin qui
+# dépend encore de l'amont le fait installer par-dessus le fork. Désinstaller
+# l'amont supprime aussi les fichiers partagés, d'où la réinstallation du fork.
+ensure_fork_owns_pibooth() {
+    local pip="$1" fork_version module_version
+    fork_version="$("${pip}" show pibooth-ceeeeb 2>/dev/null | awk '/^Version:/{print $2}')"
+    if "${pip}" show pibooth &>/dev/null; then
+        warn "pibooth amont installé par un plugin : retiré au profit du fork"
+        sudo -u "${PIBOOTH_USER}" "${pip}" uninstall --quiet --yes pibooth
+        sudo -u "${PIBOOTH_USER}" "${pip}" install --quiet --force-reinstall --no-deps \
+            "pibooth-ceeeeb==${fork_version}" || fail "réinstallation de pibooth-ceeeeb échouée"
+    fi
+    module_version="$(cd / && "${VENV_DIR}/bin/python" -c 'import pibooth; print(pibooth.__version__)' 2>/dev/null)"
+    [[ "${module_version}" == "${fork_version}" ]] \
+        || fail "le module pibooth (${module_version:-absent}) n'est pas celui du fork (${fork_version})"
+    ok "module pibooth fourni par pibooth-ceeeeb ${fork_version}"
 }
 
 # --- 4. Scripts auxiliaires ------------------------------------------------
@@ -462,8 +483,6 @@ step_display() {
         install_light_desktop
         warn "rotation de l'écran à configurer à la main sur ${BOARD} (xrandr)"
     fi
-
-    apply_touch_flip
 }
 
 # Les images serveur des autres cartes n'ont pas de session graphique, or
@@ -513,48 +532,6 @@ configure_firmware_display() {
     ok "gpu_mem=128"
 }
 
-# L'écran est monté à l'envers : le firmware retourne l'affichage, mais SDL lit
-# le tactile en coordonnées brutes, non pivotées. Le paquet publié sur PyPI ne
-# porte pas ce retournement, propre à ce montage, d'où ce correctif appliqué
-# après installation. Sans lui, chaque appui atterrit à l'opposé de la cible.
-apply_touch_flip() {
-    local straight='finger_pos = (event.x * display_size[0], event.y * display_size[1])'
-    local flipped='finger_pos = ((1 - event.x) * display_size[0], (1 - event.y) * display_size[1])'
-
-    local package_dir
-    package_dir="$("${VENV_DIR}/bin/python" -c \
-        'import os, pibooth; print(os.path.dirname(pibooth.__file__))' 2>/dev/null)" || {
-        warn "pibooth introuvable dans le venv : retournement tactile non appliqué"
-        return 0
-    }
-    local utils="${package_dir}/utils.py"
-
-    if [[ "${DISPLAY_ROTATE}" != "2" ]]; then
-        info "rotation ${DISPLAY_ROTATE} : retournement tactile non applicable"
-        return 0
-    fi
-
-    if grep -qF "${flipped}" "${utils}"; then
-        ok "retournement tactile déjà appliqué"
-        return 0
-    fi
-    if ! grep -qF "${straight}" "${utils}"; then
-        warn "motif tactile introuvable dans ${utils}"
-        info "vérifier get_event_pos() si le tactile répond à l'envers"
-        return 0
-    fi
-
-    sudo python3 - "${utils}" "${straight}" "${flipped}" << 'PATCH'
-import sys
-
-path, straight, flipped = sys.argv[1], sys.argv[2], sys.argv[3]
-source = open(path, encoding="utf-8").read()
-assert source.count(straight) == 1, "motif absent ou ambigu"
-open(path, "w", encoding="utf-8").write(source.replace(straight, flipped))
-PATCH
-    ok "retournement tactile appliqué (${utils})"
-}
-
 # --- 8. Démarrage automatique ---------------------------------------------
 
 step_autostart() {
@@ -588,25 +565,27 @@ step_config() {
         info "éditer avec : nano ${config_file}"
     fi
 
+    configure_touch_flip "${config_file}"
+
     local pictures_dir="${PIBOOTH_HOME}/Pictures/pibooth"
     sudo -u "${PIBOOTH_USER}" mkdir -p "${pictures_dir}"
     ok "répertoire photos : ${pictures_dir}"
-
-    install_templates "${config_dir}"
 }
 
-# Modèles de mise en page proposés aux invités, et les polices de leurs textes.
-# Un modèle déjà présent est conservé : il a pu être retouché dans draw.io.
-install_templates() {
-    local config_dir="$1" owner="${PIBOOTH_USER}:${PIBOOTH_USER}"
-    local added=0 source name
-    for source in "${FILES_DIR}"/templates/*.xml "${FILES_DIR}"/templates/*.cfg "${FILES_DIR}"/fonts/*; do
-        name="${source#"${FILES_DIR}"/}"
-        [[ -e "${config_dir}/${name}" ]] && continue
-        sudo install -D -o "${owner%%:*}" -g "${owner##*:}" -m 644 "${source}" "${config_dir}/${name}"
-        added=$((added + 1))
-    done
-    ok "modèles de mise en page et polices : ${added} fichier(s) ajouté(s) dans ${config_dir}"
+# Le firmware du Raspberry Pi retourne l'affichage (display_hdmi_rotate=2) mais
+# SDL lit le tactile en coordonnées brutes : pibooth doit le retourner aussi.
+# Une valeur déjà présente est conservée, elle a pu être réglée à la main.
+configure_touch_flip() {
+    local config_file="$1"
+    local touch_flip=False
+    [[ "${BOARD}" == "raspberry-pi" && "${DISPLAY_ROTATE}" == "2" ]] && touch_flip=True
+
+    if grep -q "^touch_flip" "${config_file}"; then
+        ok "retournement tactile déjà réglé : $(grep "^touch_flip" "${config_file}")"
+        return 0
+    fi
+    sudo sed -i "/^\[WINDOW\]/a touch_flip = ${touch_flip}" "${config_file}"
+    ok "retournement tactile : touch_flip = ${touch_flip}"
 }
 
 # --- Résumé ----------------------------------------------------------------

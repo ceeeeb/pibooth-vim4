@@ -112,33 +112,38 @@ L'écran étant monté à l'envers, le firmware pivote l'affichage
 (`display_hdmi_rotate=2`) mais **SDL lit le tactile en coordonnées brutes, non
 pivotées**. Sans correction, chaque appui atterrit à l'opposé de la cible.
 
-Ce retournement est intégré au paquet **depuis `pibooth-ceeeeb` 2.0.8.3** : une
-installation neuve n'a donc rien à faire. Il avait disparu en 2.0.8.2, d'où le
-filet de sécurité que garde le script : si `get_event_pos()` ne contient pas le
-retournement et que `DISPLAY_ROTATE=2`, il l'applique dans le `utils.py` du venv.
-L'opération est idempotente — sur une version qui l'inclut déjà, elle ne fait rien.
+pibooth retourne le tactile quand l'option `touch_flip` de la section
+`[WINDOW]` de `pibooth.cfg` vaut `True` (désactivée par défaut). Le script
+l'active sur Raspberry Pi avec `DISPLAY_ROTATE=2`, et la laisse à `False` sur les
+autres cartes, où l'affichage n'est pas pivoté par le firmware. Une valeur déjà
+présente dans `pibooth.cfg` est conservée.
 
-Si le tactile répond un jour à l'opposé après une mise à jour pip :
+Si le tactile répond à l'opposé (par exemple sur une configuration antérieure à
+cette option), ajouter l'option :
 
 ```bash
-./install.sh --only display
+./install.sh --only config
 ```
+
+ou régler `touch_flip = True` à la main dans `[WINDOW]`, ou dans le menu de
+réglages (« Flip touchscreen »).
 
 **Application** — un venv en `~/pibooth/pibooth` créé avec
 `--system-site-packages`, indispensable car `picamera2` et `python3-opencv`
 proviennent d'APT et ne s'installent pas correctement via pip sur Raspberry Pi OS.
-Le fork `pibooth-ceeeeb` et ses plugins sont tirés de PyPI.
+Le fork `pibooth-ceeeeb` et ses plugins sont tirés de PyPI. Le fork et le
+pibooth amont installent le même module `pibooth` : si un plugin tiers fait
+installer l'amont, l'installateur le retire et réinstalle le fork.
 
 **Mise en page** — les invités choisissent leur modèle sur l'écran d'accueil en
 faisant glisser le doigt : la dernière photo y est réassemblée dans le modèle
-choisi (plugin `pibooth-template-chooser`, sur `pibooth-picture-template`).
-Neuf modèles pour la carte SELPHY 10 × 15 sont copiés dans
-`~/.config/pibooth/templates` — photomaton, Hollywood, anniversaire, art déco,
-quatre mariages, carte postale vintage — chacun avec une page 1 photo et une
-page 4 photos, modifiables dans draw.io. Leurs polices libres (licence OFL)
-vont dans `~/.config/pibooth/fonts`. Les noms et la date restent `footer_text1`
-et `footer_text2` de `pibooth.cfg`. Les générateurs des modèles sont dans
-`files/templates/generators`.
+choisi (plugin `pibooth-template-chooser`). Le plugin fournit neuf modèles pour
+la carte SELPHY 10 × 15 — photomaton, Hollywood, anniversaire, art déco, quatre
+mariages, carte postale vintage — chacun avec une page 1 photo et une page
+4 photos, ainsi que leurs polices libres (licence OFL). Les noms et la date
+restent `footer_text1` et `footer_text2` de `pibooth.cfg`. Pour retoucher les
+modèles dans draw.io, voir le README du plugin. L'ancien plugin
+`pibooth-picture-template`, désormais intégré, est désinstallé s'il est présent.
 
 **Services web** — `gallery` (galerie de la session en cours, port 8081),
 `wifi-portal` (ajout d'un réseau Wi-Fi depuis un téléphone, port 8080),
