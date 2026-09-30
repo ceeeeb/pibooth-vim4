@@ -141,7 +141,8 @@ use_picamera2 = 1
 printer_name = default
 
 # Print options passed to the printer, shall be a valid Python dictionary
-printer_options = {'StpBorderless': 'True', 'StpImageType': 'Photo'}
+# Zero margins: the SELPHY prints borderless only when the job asks for them
+printer_options = {'media-col': '{media-size={x-dimension=10000 y-dimension=14800} media-top-margin=0 media-bottom-margin=0 media-left-margin=0 media-right-margin=0}'}
 
 # How long is the print view in seconds (0 to skip it)
 printer_delay = 0
