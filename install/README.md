@@ -112,17 +112,21 @@ L'écran étant monté à l'envers, le firmware pivote l'affichage
 (`display_hdmi_rotate=2`) mais **SDL lit le tactile en coordonnées brutes, non
 pivotées**. Sans correction, chaque appui atterrit à l'opposé de la cible.
 
-Ce retournement est intégré au paquet **depuis `pibooth-ceeeeb` 2.0.8.3** : une
-installation neuve n'a donc rien à faire. Il avait disparu en 2.0.8.2, d'où le
-filet de sécurité que garde le script : si `get_event_pos()` ne contient pas le
-retournement et que `DISPLAY_ROTATE=2`, il l'applique dans le `utils.py` du venv.
-L'opération est idempotente — sur une version qui l'inclut déjà, elle ne fait rien.
+pibooth retourne le tactile quand l'option `touch_flip` de la section
+`[WINDOW]` de `pibooth.cfg` vaut `True` (désactivée par défaut). Le script
+l'active sur Raspberry Pi avec `DISPLAY_ROTATE=2`, et la laisse à `False` sur les
+autres cartes, où l'affichage n'est pas pivoté par le firmware. Une valeur déjà
+présente dans `pibooth.cfg` est conservée.
 
-Si le tactile répond un jour à l'opposé après une mise à jour pip :
+Si le tactile répond à l'opposé (par exemple sur une configuration antérieure à
+cette option), ajouter l'option :
 
 ```bash
-./install.sh --only display
+./install.sh --only config
 ```
+
+ou régler `touch_flip = True` à la main dans `[WINDOW]`, ou dans le menu de
+réglages (« Flip touchscreen »).
 
 **Application** — un venv en `~/pibooth/pibooth` créé avec
 `--system-site-packages`, indispensable car `picamera2` et `python3-opencv`
