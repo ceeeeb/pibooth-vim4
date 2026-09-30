@@ -187,7 +187,7 @@ step_system() {
 
     shorten_disk_commit
     keep_journal
-    set_wifi_country
+    configure_wifi_chip
     disable_camera_isp_server
 }
 
@@ -215,19 +215,29 @@ CONF
     ok "journal système conservé d'un démarrage à l'autre"
 }
 
-# Sans pays déclaré, le pilote bcmdhd du VIM4 règle la puce Wi-Fi pour la Chine :
-# canaux et puissances d'un autre pays, dont des canaux 5 GHz interdits ou
-# manquants. Le fichier appartient au paquet de la carte, qu'une mise à jour
-# peut réécrire : relancer alors cette étape.
-set_wifi_country() {
+# Réglages de la puce Wi-Fi du VIM4, lus par son pilote bcmdhd au démarrage :
+# - le pays, sans lequel il la règle pour la Chine (canaux et puissances d'un
+#   autre pays, dont des canaux 5 GHz interdits ou manquants) ;
+# - le 2,4 GHz seul : la puce porte le client et le hotspot sur un même canal,
+#   et son itinérance ramènerait le client, donc le hotspot, en 5 GHz, hors de
+#   portée de l'imprimante SELPHY qui ne capte que le 2,4 GHz.
+# Le fichier appartient au paquet de la carte, qu'une mise à jour peut réécrire :
+# relancer alors cette étape.
+configure_wifi_chip() {
     local config=/lib/firmware/brcm/config_bcm43752a2_ag.txt
     [[ -f "${config}" ]] || return 0
-    if grep -q '^ccode=' "${config}"; then
-        sudo sed -i "s/^ccode=.*/ccode=${WIFI_COUNTRY}/" "${config}"
+    set_driver_option "${config}" ccode "${WIFI_COUNTRY}"
+    set_driver_option "${config}" band b
+    ok "puce Wi-Fi : pays ${WIFI_COUNTRY}, 2,4 GHz seulement (au prochain démarrage)"
+}
+
+set_driver_option() {
+    local config="$1" key="$2" value="$3"
+    if grep -q "^${key}=" "${config}"; then
+        sudo sed -i "s/^${key}=.*/${key}=${value}/" "${config}"
     else
-        echo "ccode=${WIFI_COUNTRY}" | sudo tee -a "${config}" >/dev/null
+        echo "${key}=${value}" | sudo tee -a "${config}" >/dev/null
     fi
-    ok "Wi-Fi réglé pour le pays ${WIFI_COUNTRY} (au prochain démarrage)"
 }
 
 # Ce service ne sert qu'aux caméras MIPI, et échoue sans elles à chaque démarrage.
