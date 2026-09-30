@@ -77,8 +77,7 @@ Toutes surchargeables par variable d'environnement.
 | `HOTSPOT_CHANNEL` | `11` | canal 2,4 GHz |
 | `HOTSPOT_ADDRESS` | `10.42.0.1` | adresse du Pi sur le hotspot |
 | `HOTSPOT_SHARE_INTERNET` | `no` | `yes` partage la connexion avec les invités |
-| `PRINTER_DHCP_NAME` | `SELPHY_DHCP_INSTANCE_0` | nom sous lequel les SELPHY demandent leur adresse. Vide = pas d'imprimante |
-| `PRINTER_ADDRESS` | `10.42.0.50` | adresse fixe réservée aux SELPHY sur le hotspot |
+| `PRINTER_SERVICE` | `Canon SELPHY CP1500` | nom du service mDNS de l'imprimante sur le hotspot. Vide = pas d'imprimante |
 | `PRINTER_QUEUE` | `Canon_SELPHY_CP1500` | nom de l'imprimante dans CUPS |
 | `CLIENT_IFACE` | `wlan0` | radio interne, connexion à la box |
 | `GALLERY_PORT` | `8081` | port de la galerie |
@@ -157,9 +156,11 @@ modèles dans draw.io, voir le README du plugin. L'ancien plugin
 photos), journal système conservé d'un démarrage à l'autre, puce Wi-Fi du VIM4 réglée pour le pays (la Chine par défaut) et limitée au 2,4 GHz — elle porte box et hotspot sur un même canal, et l'imprimante SELPHY ne capte pas le 5 GHz —, et service
 `camera_isp_3a_server` désactivé, inutile avec une caméra USB.
 
-**Imprimante** — la Canon SELPHY rejoint le hotspot en Wi-Fi, où une adresse
-fixe lui est réservée d'après le nom que toutes les SELPHY donnent au DHCP :
-n'importe laquelle, interchangeable, la reçoit, sans noter d'adresse MAC. Elle est déclarée dans CUPS en impression sans pilote
+**Imprimante** — la Canon SELPHY rejoint le hotspot en Wi-Fi. CUPS la trouve
+par le nom de son service mDNS, commun à toutes les CP1500 : n'importe laquelle,
+interchangeable, convient, sans adresse fixe ni adresse MAC à noter.
+Désactiver l'arrêt automatique dans le menu de la SELPHY : sinon elle s'éteint
+après quelques minutes sans impression, et les tirages restent en attente. Elle est déclarée dans CUPS en impression sans pilote
 (IPP), carte postale sans bord, et devient l'imprimante par défaut. Éteinte
 pendant l'installation, il suffit de l'allumer puis de relancer
 `./install.sh --only printer`. Le sans-bord exige aussi les `printer_options`

@@ -30,11 +30,10 @@ HOTSPOT_ADDRESS="${HOTSPOT_ADDRESS:-10.42.0.1}"
 CLIENT_IFACE="${CLIENT_IFACE:-wlan0}"
 HOTSPOT_SHARE_INTERNET="${HOTSPOT_SHARE_INTERNET:-no}"
 
-# Imprimante photo (Canon SELPHY) connectée au hotspot. Toutes les SELPHY se
-# présentent au DHCP sous ce même nom : l'adresse fixe est réservée d'après lui,
-# si bien que n'importe laquelle, interchangeable, la reçoit. Vide = aucune.
-PRINTER_DHCP_NAME="${PRINTER_DHCP_NAME-SELPHY_DHCP_INSTANCE_0}"
-PRINTER_ADDRESS="${PRINTER_ADDRESS:-10.42.0.50}"
+# Imprimante photo (Canon SELPHY) connectée au hotspot. CUPS la trouve par le
+# nom de son service mDNS, le même pour toutes les CP1500 : n'importe laquelle,
+# interchangeable, convient, quelle que soit son adresse. Vide = aucune.
+PRINTER_SERVICE="${PRINTER_SERVICE-Canon SELPHY CP1500}"
 PRINTER_QUEUE="${PRINTER_QUEUE:-Canon_SELPHY_CP1500}"
 
 GALLERY_PORT="${GALLERY_PORT:-8081}"
@@ -136,6 +135,9 @@ step_packages() {
         libgphoto2-6 libgphoto2-dev libgphoto2-port12
         python3-numpy python3-opencv python3-flask
         cups libcups2-dev python3-cups
+        # Imprimante trouvée par son nom mDNS : ippfind la découvre, et CUPS
+        # joint son nom en .local grâce à libnss-mdns.
+        cups-ipp-utils libnss-mdns
         # tkinter : fenêtre d'infos Wi-Fi affichée avant pibooth.
         python3-tk
         network-manager nftables dnsmasq-base
@@ -463,7 +465,8 @@ dhcp-option=114,http://${HOTSPOT_ADDRESS}/
 CONF
     ok "/etc/NetworkManager/dnsmasq-shared.d/captive-portal.conf"
 
-    reserve_printer_address
+    # Une version précédente réservait une adresse à l'imprimante : devenu inutile.
+    sudo rm -f /etc/NetworkManager/dnsmasq-shared.d/pibooth-printer.conf
 
     if [[ "${HOTSPOT_SHARE_INTERNET}" == "no" ]]; then
         install_file network/50-pibooth-ap-local \
@@ -484,18 +487,6 @@ CONF
     sudo systemctl restart captive-portal.service 2>/dev/null || true
 }
 
-# Une adresse fixe pour l'imprimante : CUPS la joint par son adresse IP.
-reserve_printer_address() {
-    local conf=/etc/NetworkManager/dnsmasq-shared.d/pibooth-printer.conf
-    if [[ -z "${PRINTER_DHCP_NAME}" ]]; then
-        sudo rm -f "${conf}"
-        return 0
-    fi
-    echo "dhcp-host=${PRINTER_DHCP_NAME},${PRINTER_ADDRESS}" \
-        | sudo install -D -o root -g root -m 644 /dev/stdin "${conf}"
-    ok "adresse ${PRINTER_ADDRESS} réservée aux imprimantes ${PRINTER_DHCP_NAME}"
-}
-
 # Sans hotspot, l'adresse du portail n'existe pas et le service redémarrerait
 # en boucle.
 disable_captive_portal() {
@@ -508,21 +499,27 @@ disable_captive_portal() {
 step_printer() {
     step "Imprimante"
 
-    if [[ -z "${PRINTER_DHCP_NAME}" ]]; then
-        warn "PRINTER_DHCP_NAME vide : aucune imprimante déclarée"
+    if [[ -z "${PRINTER_SERVICE}" ]]; then
+        warn "PRINTER_SERVICE vide : aucune imprimante déclarée"
         return 0
     fi
 
-    # La SELPHY ne répond pas à 'lpadmin -m everywhere' ; driverless, lui, lit
-    # ses attributs et en tire un pilote IPP sans pilote constructeur.
-    local uri="ipp://${PRINTER_ADDRESS}/ipp/print" ppd
+    # ippfind résout le service en une adresse que driverless sait interroger :
+    # la SELPHY ne répond pas à 'lpadmin -m everywhere', driverless en tire un
+    # pilote IPP sans pilote constructeur.
+    local found ppd
+    found="$(timeout 20 ippfind -T 10 _ipp._tcp --name "${PRINTER_SERVICE}" 2>/dev/null | head -1 || true)"
     ppd="$(mktemp)"
-    if ! timeout 30 driverless "${uri}" > "${ppd}" 2>/dev/null || [[ ! -s "${ppd}" ]]; then
+    if [[ -z "${found}" ]] || ! timeout 30 driverless "${found}" > "${ppd}" 2>/dev/null || [[ ! -s "${ppd}" ]]; then
         rm -f "${ppd}"
-        warn "imprimante injoignable sur ${uri}"
-        info "l'allumer (elle rejoint le hotspot et prend ${PRINTER_ADDRESS}), puis : ./install.sh --only printer"
+        warn "imprimante « ${PRINTER_SERVICE} » introuvable sur le réseau"
+        info "l'allumer (elle rejoint le hotspot), puis : ./install.sh --only printer"
         return 0
     fi
+
+    # La file vise le nom du service et non l'adresse trouvée : CUPS le résout
+    # à chaque impression, quelle que soit la CP1500 allumée et son adresse.
+    local uri="dnssd://${PRINTER_SERVICE// /%20}._ipp._tcp.local/ipp/print"
     sudo lpadmin -p "${PRINTER_QUEUE}" -E -v "${uri}" -P "${ppd}" 2>/dev/null
     rm -f "${ppd}"
     # Le sans-bord passe aussi par printer_options de pibooth.cfg : CUPS
