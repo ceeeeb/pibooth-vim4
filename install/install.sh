@@ -30,9 +30,10 @@ HOTSPOT_ADDRESS="${HOTSPOT_ADDRESS:-10.42.0.1}"
 CLIENT_IFACE="${CLIENT_IFACE:-wlan0}"
 HOTSPOT_SHARE_INTERNET="${HOTSPOT_SHARE_INTERNET:-no}"
 
-# Imprimante photo (Canon SELPHY) connectée au hotspot. Son adresse MAC sert à
-# lui réserver une adresse fixe ; vide, aucune imprimante n'est déclarée.
-PRINTER_MAC="${PRINTER_MAC:-}"
+# Imprimante photo (Canon SELPHY) connectée au hotspot. Toutes les SELPHY se
+# présentent au DHCP sous ce même nom : l'adresse fixe est réservée d'après lui,
+# si bien que n'importe laquelle, interchangeable, la reçoit. Vide = aucune.
+PRINTER_DHCP_NAME="${PRINTER_DHCP_NAME-SELPHY_DHCP_INSTANCE_0}"
 PRINTER_ADDRESS="${PRINTER_ADDRESS:-10.42.0.50}"
 PRINTER_QUEUE="${PRINTER_QUEUE:-Canon_SELPHY_CP1500}"
 
@@ -486,13 +487,13 @@ CONF
 # Une adresse fixe pour l'imprimante : CUPS la joint par son adresse IP.
 reserve_printer_address() {
     local conf=/etc/NetworkManager/dnsmasq-shared.d/pibooth-printer.conf
-    if [[ -z "${PRINTER_MAC}" ]]; then
+    if [[ -z "${PRINTER_DHCP_NAME}" ]]; then
         sudo rm -f "${conf}"
         return 0
     fi
-    echo "dhcp-host=${PRINTER_MAC},${PRINTER_ADDRESS}" \
+    echo "dhcp-host=${PRINTER_DHCP_NAME},${PRINTER_ADDRESS}" \
         | sudo install -D -o root -g root -m 644 /dev/stdin "${conf}"
-    ok "adresse ${PRINTER_ADDRESS} réservée à l'imprimante ${PRINTER_MAC}"
+    ok "adresse ${PRINTER_ADDRESS} réservée aux imprimantes ${PRINTER_DHCP_NAME}"
 }
 
 # Sans hotspot, l'adresse du portail n'existe pas et le service redémarrerait
@@ -507,9 +508,8 @@ disable_captive_portal() {
 step_printer() {
     step "Imprimante"
 
-    if [[ -z "${PRINTER_MAC}" ]]; then
-        warn "PRINTER_MAC vide : aucune imprimante déclarée"
-        info "relancer avec : PRINTER_MAC='aa:bb:cc:dd:ee:ff' ./install.sh --only network, puis --only printer"
+    if [[ -z "${PRINTER_DHCP_NAME}" ]]; then
+        warn "PRINTER_DHCP_NAME vide : aucune imprimante déclarée"
         return 0
     fi
 
