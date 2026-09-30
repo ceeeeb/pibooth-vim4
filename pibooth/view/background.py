@@ -264,6 +264,8 @@ class IntroWithPrintBackground(IntroBackground):
         IntroBackground.__init__(self, arrow_location, arrow_offset)
         self.right_arrow = None
         self.right_arrow_pos = None
+        self.print_button = None
+        self.print_button_pos = None
 
     def __str__(self):
         """Return background final name.
@@ -275,6 +277,13 @@ class IntroWithPrintBackground(IntroBackground):
 
     def resize(self, screen):
         IntroBackground.resize(self, screen)
+        if self._need_update:
+            # Printer drawn where the print hint text used to be: guests tap it
+            self.print_button = pictures.get_pygame_image(
+                "printer.png", (self._rect.width * 0.14, self._rect.height * 0.22), color=self._text_color)
+            rect = self.print_button.get_rect(centerx=int(self._rect.width * 0.40))
+            rect.bottom = int(self._rect.height * 0.92)
+            self.print_button_pos = rect.topleft
         if self._need_update and self.arrow_location != ARROW_HIDDEN:
             size = (self._rect.width * 0.1, self._rect.height * 0.1)
             if self.arrow_location == ARROW_TOUCH:
@@ -294,23 +303,15 @@ class IntroWithPrintBackground(IntroBackground):
                 y = int(self._rect.bottom - self.right_arrow.get_rect().height * 1.1)
             self.right_arrow_pos = (x - self.arrow_offset, y)
 
-    def resize_texts(self):
-        """Update text surfaces.
-        """
-        IntroBackground.resize_texts(self)
-        text = get_translated_text("intro_print")
-        if text:
-            rect = pygame.Rect(self._rect.width * 0.30 + self._text_border, 0,
-                               self._rect.width * 0.20 - 2 * self._text_border,
-                               self._rect.height * 0.3 - 2 * self._text_border)
-            if self.arrow_location == ARROW_TOP:
-                rect.top = self._rect.height * 0.08
-            else:
-                rect.bottom = self._rect.height - self._rect.height * 0.08
-            self._write_text(text, rect)
+    def get_print_button_rect(self):
+        """Return the area of the printer guests tap to print, or None."""
+        if not self.print_button:
+            return None
+        return pygame.Rect(self.print_button_pos, self.print_button.get_size())
 
     def paint(self, screen):
         IntroBackground.paint(self, screen)
+        screen.blit(self.print_button, self.print_button_pos)
         if self.arrow_location != ARROW_HIDDEN:
             screen.blit(self.right_arrow, self.right_arrow_pos)
 

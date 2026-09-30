@@ -63,7 +63,7 @@ Compter 15 à 30 minutes selon la connexion. Le script est **idempotent** : il p
 ```
 
 Étapes disponibles pour `--only` : `packages`, `system`, `python`, `scripts`,
-`services`, `network`, `display`, `autostart`, `config`.
+`services`, `network`, `printer`, `display`, `autostart`, `config`.
 
 ### Variables de configuration
 
@@ -77,6 +77,9 @@ Toutes surchargeables par variable d'environnement.
 | `HOTSPOT_CHANNEL` | `11` | canal 2,4 GHz |
 | `HOTSPOT_ADDRESS` | `10.42.0.1` | adresse du Pi sur le hotspot |
 | `HOTSPOT_SHARE_INTERNET` | `no` | `yes` partage la connexion avec les invités |
+| `PRINTER_DHCP_NAME` | `SELPHY_DHCP_INSTANCE_0` | nom sous lequel les SELPHY demandent leur adresse. Vide = pas d'imprimante |
+| `PRINTER_ADDRESS` | `10.42.0.50` | adresse fixe réservée aux SELPHY sur le hotspot |
+| `PRINTER_QUEUE` | `Canon_SELPHY_CP1500` | nom de l'imprimante dans CUPS |
 | `CLIENT_IFACE` | `wlan0` | radio interne, connexion à la box |
 | `GALLERY_PORT` | `8081` | port de la galerie |
 | `DISPLAY_ROTATE` | `2` | rotation écran (2 = 180°) |
@@ -151,8 +154,16 @@ modèles dans draw.io, voir le README du plugin. L'ancien plugin
 
 **Système** — fuseau horaire. Hors Raspberry Pi : écriture sur disque toutes les
 5 s (les images Khadas attendent 10 min, une coupure perdrait les dernières
-photos), journal système conservé d'un démarrage à l'autre, puce Wi-Fi du VIM4 réglée pour le pays (la Chine par défaut), et service
+photos), journal système conservé d'un démarrage à l'autre, puce Wi-Fi du VIM4 réglée pour le pays (la Chine par défaut) et limitée au 2,4 GHz — elle porte box et hotspot sur un même canal, et l'imprimante SELPHY ne capte pas le 5 GHz —, et service
 `camera_isp_3a_server` désactivé, inutile avec une caméra USB.
+
+**Imprimante** — la Canon SELPHY rejoint le hotspot en Wi-Fi, où une adresse
+fixe lui est réservée d'après le nom que toutes les SELPHY donnent au DHCP :
+n'importe laquelle, interchangeable, la reçoit, sans noter d'adresse MAC. Elle est déclarée dans CUPS en impression sans pilote
+(IPP), carte postale sans bord, et devient l'imprimante par défaut. Éteinte
+pendant l'installation, il suffit de l'allumer puis de relancer
+`./install.sh --only printer`. Le sans-bord exige aussi les `printer_options`
+du modèle de configuration : CUPS ne transmet pas seul les marges nulles.
 
 **Réseau** — un point d'accès `pibooth-ap` sur le dongle, pendant que la radio
 interne reste cliente de la box. Toutes les connexions client sont épinglées sur
