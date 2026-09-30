@@ -282,19 +282,20 @@ def load_module(path):
     LOGGER.warning("Can not load Python module '%s' from '%s'", modname, path)
 
 
-def get_event_pos(display_size, event):
+def get_event_pos(display_size, event, flip=False):
     """
     Return the position from finger or mouse event on x-axis and y-axis (x, y).
 
     :param display_size: size of display for relative positioning in finger events
     :param event: pygame event object
+    :param flip: mirror finger positions on both axes
     :return: position (x, y) in px
     """
     if event.type in (pygame.FINGERDOWN, pygame.FINGERMOTION, pygame.FINGERUP):
-        # The panel is mounted upside down and the display is rotated by the
-        # firmware (display_hdmi_rotate=2), but SDL reports touches in raw,
-        # unrotated panel coordinates. Mirror both axes so a touch lands where
-        # the user sees it. Removing this makes every tap hit the opposite side.
-        finger_pos = ((1 - event.x) * display_size[0], (1 - event.y) * display_size[1])
-        return finger_pos
+        # When the display is rotated by the system (e.g. display_hdmi_rotate=2
+        # on a Raspberry Pi), SDL still reports touches in raw, unrotated panel
+        # coordinates: mirror them so a touch lands where the user sees it.
+        if flip:
+            return ((1 - event.x) * display_size[0], (1 - event.y) * display_size[1])
+        return (event.x * display_size[0], event.y * display_size[1])
     return event.pos
