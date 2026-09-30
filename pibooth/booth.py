@@ -333,9 +333,14 @@ class PiApplication(object):
                     and pygame.key.get_mods() & pygame.KMOD_CTRL:
                 return event
             if (event.type == pygame.MOUSEBUTTONUP and event.button in (1, 2, 3)) or event.type == pygame.FINGERUP:
-                pos = self._get_event_pos(event)
-                rect = self._window.get_rect()
-                if pygame.Rect(rect.width // 2, 0, rect.width // 2, rect.height).collidepoint(pos):
+                # Where a printer button is shown, only it prints: the right
+                # half of the wait screen shows the picture, which guests touch
+                # for other purposes. Elsewhere, the right half prints.
+                rect = self._window.get_print_button_rect()
+                if not rect:
+                    rect = self._window.get_rect()
+                    rect = pygame.Rect(rect.width // 2, 0, rect.width // 2, rect.height)
+                if rect.collidepoint(self._get_event_pos(event)):
                     return event
             if event.type == BUTTONDOWN and event.printer:
                 return event
