@@ -40,6 +40,10 @@ def get_cv_camera_proxy(port=None):
     return None
 
 
+# Width of the live preview stream, its height follows the captures ratio
+PREVIEW_WIDTH = 1280
+
+
 class CvCamera(BaseCamera):
 
     """OpenCV camera management.
@@ -69,8 +73,14 @@ class CvCamera(BaseCamera):
         # the raw YUYV one is capped by the USB bandwidth
         self._cam.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))
 
+        # The default mode of UVC cameras is often a 4:3 crop of the sensor:
+        # preview with the captures ratio so that guests see the whole picture
+        width, height = self.resolution
+        self._cam.set(cv2.CAP_PROP_FRAME_WIDTH, PREVIEW_WIDTH)
+        self._cam.set(cv2.CAP_PROP_FRAME_HEIGHT, round(PREVIEW_WIDTH * height / width))
+
         self._preview_resolution = (self._cam.get(cv2.CAP_PROP_FRAME_WIDTH), self._cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        LOGGER.debug("Preview resolution is %s", self._preview_resolution)
+        LOGGER.info("Preview resolution is %s", self._preview_resolution)
         self._cam.set(cv2.CAP_PROP_ISO_SPEED, self.preview_iso)
 
     def set_controls(self, focus, mains_hz):
