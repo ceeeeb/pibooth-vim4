@@ -151,7 +151,7 @@ modèles dans draw.io, voir le README du plugin. L'ancien plugin
 
 **Système** — fuseau horaire. Hors Raspberry Pi : écriture sur disque toutes les
 5 s (les images Khadas attendent 10 min, une coupure perdrait les dernières
-photos), journal système conservé d'un démarrage à l'autre, puce Wi-Fi du VIM4 réglée pour le pays (la Chine par défaut), et service
+photos), journal système conservé d'un démarrage à l'autre, puce Wi-Fi du VIM4 réglée pour le pays (la Chine par défaut) et limitée au 2,4 GHz — elle porte box et hotspot sur un même canal, et l'imprimante SELPHY ne capte pas le 5 GHz —, et service
 `camera_isp_3a_server` désactivé, inutile avec une caméra USB.
 
 **Réseau** — un point d'accès `pibooth-ap` sur le dongle, pendant que la radio
