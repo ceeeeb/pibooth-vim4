@@ -30,6 +30,12 @@ HOTSPOT_ADDRESS="${HOTSPOT_ADDRESS:-10.42.0.1}"
 CLIENT_IFACE="${CLIENT_IFACE:-wlan0}"
 HOTSPOT_SHARE_INTERNET="${HOTSPOT_SHARE_INTERNET:-no}"
 
+# Imprimante photo (Canon SELPHY) connectée au hotspot. Son adresse MAC sert à
+# lui réserver une adresse fixe ; vide, aucune imprimante n'est déclarée.
+PRINTER_MAC="${PRINTER_MAC:-}"
+PRINTER_ADDRESS="${PRINTER_ADDRESS:-10.42.0.50}"
+PRINTER_QUEUE="${PRINTER_QUEUE:-Canon_SELPHY_CP1500}"
+
 GALLERY_PORT="${GALLERY_PORT:-8081}"
 WIFI_PORTAL_PORT="${WIFI_PORTAL_PORT:-8080}"
 DISPLAY_ROTATE="${DISPLAY_ROTATE:-2}"
@@ -42,7 +48,7 @@ BOARD="unknown"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FILES_DIR="${SCRIPT_DIR}/files"
 
-STEPS=(packages system python scripts services network display autostart config)
+STEPS=(packages system python scripts services network printer display autostart config)
 
 # --- Sortie ----------------------------------------------------------------
 
@@ -456,6 +462,8 @@ dhcp-option=114,http://${HOTSPOT_ADDRESS}/
 CONF
     ok "/etc/NetworkManager/dnsmasq-shared.d/captive-portal.conf"
 
+    reserve_printer_address
+
     if [[ "${HOTSPOT_SHARE_INTERNET}" == "no" ]]; then
         install_file network/50-pibooth-ap-local \
             /etc/NetworkManager/dispatcher.d/50-pibooth-ap-local root:root 755
@@ -475,6 +483,18 @@ CONF
     sudo systemctl restart captive-portal.service 2>/dev/null || true
 }
 
+# Une adresse fixe pour l'imprimante : CUPS la joint par son adresse IP.
+reserve_printer_address() {
+    local conf=/etc/NetworkManager/dnsmasq-shared.d/pibooth-printer.conf
+    if [[ -z "${PRINTER_MAC}" ]]; then
+        sudo rm -f "${conf}"
+        return 0
+    fi
+    echo "dhcp-host=${PRINTER_MAC},${PRINTER_ADDRESS}" \
+        | sudo install -D -o root -g root -m 644 /dev/stdin "${conf}"
+    ok "adresse ${PRINTER_ADDRESS} réservée à l'imprimante ${PRINTER_MAC}"
+}
+
 # Sans hotspot, l'adresse du portail n'existe pas et le service redémarrerait
 # en boucle.
 disable_captive_portal() {
@@ -482,7 +502,37 @@ disable_captive_portal() {
     info "portail captif désactivé tant que le hotspot n'est pas configuré"
 }
 
-# --- 7. Affichage ----------------------------------------------------------
+# --- 7. Imprimante ----------------------------------------------------------
+
+step_printer() {
+    step "Imprimante"
+
+    if [[ -z "${PRINTER_MAC}" ]]; then
+        warn "PRINTER_MAC vide : aucune imprimante déclarée"
+        info "relancer avec : PRINTER_MAC='aa:bb:cc:dd:ee:ff' ./install.sh --only network, puis --only printer"
+        return 0
+    fi
+
+    # La SELPHY ne répond pas à 'lpadmin -m everywhere' ; driverless, lui, lit
+    # ses attributs et en tire un pilote IPP sans pilote constructeur.
+    local uri="ipp://${PRINTER_ADDRESS}/ipp/print" ppd
+    ppd="$(mktemp)"
+    if ! timeout 30 driverless "${uri}" > "${ppd}" 2>/dev/null || [[ ! -s "${ppd}" ]]; then
+        rm -f "${ppd}"
+        warn "imprimante injoignable sur ${uri}"
+        info "l'allumer (elle rejoint le hotspot et prend ${PRINTER_ADDRESS}), puis : ./install.sh --only printer"
+        return 0
+    fi
+    sudo lpadmin -p "${PRINTER_QUEUE}" -E -v "${uri}" -P "${ppd}" 2>/dev/null
+    rm -f "${ppd}"
+    # Le sans-bord passe aussi par printer_options de pibooth.cfg : CUPS
+    # n'envoie pas les marges nulles de ce format à l'imprimante.
+    sudo lpadmin -p "${PRINTER_QUEUE}" -o PageSize=Postcard.Borderless
+    sudo lpadmin -d "${PRINTER_QUEUE}"
+    ok "imprimante ${PRINTER_QUEUE} déclarée sur ${uri}, par défaut"
+}
+
+# --- 8. Affichage ----------------------------------------------------------
 
 step_display() {
     step "Affichage"
@@ -542,7 +592,7 @@ configure_firmware_display() {
     ok "gpu_mem=128"
 }
 
-# --- 8. Démarrage automatique ---------------------------------------------
+# --- 9. Démarrage automatique ---------------------------------------------
 
 step_autostart() {
     step "Démarrage automatique"
@@ -555,7 +605,7 @@ step_autostart() {
     info "pibooth démarre avec la session graphique via start-pibooth.sh"
 }
 
-# --- 9. Configuration pibooth ---------------------------------------------
+# --- 10. Configuration pibooth ---------------------------------------------
 
 step_config() {
     step "Configuration pibooth"
