@@ -279,11 +279,12 @@ step_python() {
     sudo -u "${PIBOOTH_USER}" "${pip}" install --quiet --upgrade "${packages[@]}" \
         || fail "installation pip échouée"
 
-    # Mise en page par modèles draw.io. Ce plugin dépend du pibooth amont, qui
-    # écraserait le fork : ses dépendances sont déjà là, il s'installe sans elles.
-    sudo -u "${PIBOOTH_USER}" "${pip}" install --quiet --upgrade --no-deps pibooth-picture-template \
-        || fail "installation de pibooth-picture-template échouée"
-    packages+=(pibooth-picture-template)
+    # pibooth-template-chooser intègre désormais pibooth-picture-template : les
+    # deux déclarent [PICTURE] template et pibooth refuserait de démarrer.
+    if "${pip}" show pibooth-picture-template &>/dev/null; then
+        sudo -u "${PIBOOTH_USER}" "${pip}" uninstall --quiet --yes pibooth-picture-template
+        ok "pibooth-picture-template retiré (intégré à pibooth-template-chooser)"
+    fi
 
     ensure_fork_owns_pibooth "${pip}"
 
@@ -569,22 +570,6 @@ step_config() {
     local pictures_dir="${PIBOOTH_HOME}/Pictures/pibooth"
     sudo -u "${PIBOOTH_USER}" mkdir -p "${pictures_dir}"
     ok "répertoire photos : ${pictures_dir}"
-
-    install_templates "${config_dir}"
-}
-
-# Modèles de mise en page proposés aux invités, et les polices de leurs textes.
-# Un modèle déjà présent est conservé : il a pu être retouché dans draw.io.
-install_templates() {
-    local config_dir="$1" owner="${PIBOOTH_USER}:${PIBOOTH_USER}"
-    local added=0 source name
-    for source in "${FILES_DIR}"/templates/*.xml "${FILES_DIR}"/templates/*.cfg "${FILES_DIR}"/fonts/*; do
-        name="${source#"${FILES_DIR}"/}"
-        [[ -e "${config_dir}/${name}" ]] && continue
-        sudo install -D -o "${owner%%:*}" -g "${owner##*:}" -m 644 "${source}" "${config_dir}/${name}"
-        added=$((added + 1))
-    done
-    ok "modèles de mise en page et polices : ${added} fichier(s) ajouté(s) dans ${config_dir}"
 }
 
 # Le firmware du Raspberry Pi retourne l'affichage (display_hdmi_rotate=2) mais

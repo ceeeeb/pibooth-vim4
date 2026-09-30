@@ -106,9 +106,9 @@ overlays =
 # Background RGB color or image path (list of tuples or quoted paths accepted)
 backgrounds = (255, 255, 255)
 
-# Pictures template path, it should contain 8 pages (4 capture numbers and 2 orientations)
-# Required by 'picture-template' plugin
-template = ~/.config/pibooth/templates/photomaton.xml
+# Picture template path (draw.io file), empty for the standard layout
+# Required by 'pibooth_template_chooser' plugin
+template = 
 
 [CAMERA]
 # Adjust ISO for lighting issues, can be different for preview and capture (list of integers accepted)
@@ -202,9 +202,9 @@ flash_led_pin = 33
 flash_led_active_high = True
 
 [TEMPLATE_CHOOSER]
-# Directory of the picture templates guests choose from on the wait screen
-# Required by 'template_chooser' plugin
-directory = ~/.config/pibooth/templates
+# Directory of the picture templates guests choose from on the wait screen, empty for the templates shipped with the plugin
+# Required by 'pibooth_template_chooser' plugin
+directory = 
 
 [GALLERY_QR]
 # Enable the local gallery plugin (writes session marker)
