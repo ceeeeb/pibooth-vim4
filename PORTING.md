@@ -27,22 +27,26 @@ Ajouter une nouvelle carte ne demande aucun code : il suffit d'une section dans
 Le connecteur 40 broches du VIM4 n'a pas le même brochage que celui du Pi. Les
 lignes GPIO proviennent de la
 [documentation Khadas](https://docs.khadas.com/products/sbc/vim4/applications/gpio/40pin-header)
-et ne sont valables que pour le noyau constructeur 5.4.
+et ont été vérifiées sur le noyau constructeur 5.15 (Fenix 1.7.5).
 
-| Option de `[CONTROLS]` | Broche actuelle | GPIO VIM4 | État |
+| Option de `[CONTROLS]` | Broche Pi | Broche VIM4 | GPIO VIM4 |
 |---|---|---|---|
-| `picture_btn_pin`  | 11 | — | **à déplacer** : la broche 11 du VIM4 est une alimentation VDD1V8 |
-| `picture_led_pin`  | 16 | 490 | inchangé |
-| `print_btn_pin`    | 32 | 448 | inchangé |
-| `print_led_pin`    | 15 | 491 | inchangé |
-| `startup_led_pin`  | 29 | 447 | inchangé |
-| `preview_led_pin`  | 31 | 449 | inchangé |
-| `flash_led_pin`    | 33 | 450 | inchangé |
-| `forget_btn_pin`   | 36 | 464 | inchangé |
-| `forget_led_pin`   | 37 | 465 | inchangé |
+| `picture_btn_pin`  | 11 | **22** | 501 |
+| `picture_led_pin`  | 16 | 16 | 490 |
+| `print_btn_pin`    | 32 | 32 | 448 |
+| `print_led_pin`    | 15 | 15 | 491 |
+| `startup_led_pin`  | 29 | 29 | 447 |
+| `preview_led_pin`  | 31 | 31 | 449 |
+| `flash_led_pin`    | 33 | 33 | 450 |
+| `forget_btn_pin`   | 36 | 36 | 464 |
+| `forget_led_pin`   | 37 | 37 | 465 |
 
-Broches libres pour le bouton de capture : **22** (GPIO 501), **30** (446),
-**23** (502), **25** (466), **26** (467), **35** (492).
+Seul le bouton de capture change de broche : la broche 11 du VIM4 est une
+alimentation (VDD1V8). Le modèle `install/files/pibooth.cfg.template` garde la
+broche 11 du Pi, l'installeur la remplace par 22 sur VIM4.
+
+Broches encore libres : 13 (GPIO 420), 23 (502), 25 (466), 26 (467),
+30 (446), 35 (492), 39 (417).
 
 ### Attention au câblage
 
