@@ -626,6 +626,7 @@ step_config() {
     fi
 
     configure_touch_flip "${config_file}"
+    configure_capture_button "${config_file}"
 
     local pictures_dir="${PIBOOTH_HOME}/Pictures/pibooth"
     sudo -u "${PIBOOTH_USER}" mkdir -p "${pictures_dir}"
@@ -646,6 +647,19 @@ configure_touch_flip() {
     fi
     sudo sed -i "/^\[WINDOW\]/a touch_flip = ${touch_flip}" "${config_file}"
     ok "retournement tactile : touch_flip = ${touch_flip}"
+}
+
+# Le modèle reprend le câblage du Pi, où le bouton de capture est sur la broche
+# 11. Sur le VIM4 cette broche est une alimentation (VDD1V8) : le bouton passe
+# sur la broche 22. Une autre valeur, réglée à la main, est conservée.
+configure_capture_button() {
+    local config_file="$1"
+    [[ "${BOARD}" == "khadas-vim4" ]] || return 0
+
+    if grep -q "^picture_btn_pin = 11$" "${config_file}"; then
+        sudo sed -i "s/^picture_btn_pin = 11$/picture_btn_pin = 22/" "${config_file}"
+        ok "bouton de capture : broche 11 (alimentation sur VIM4) → 22"
+    fi
 }
 
 # --- Résumé ----------------------------------------------------------------
