@@ -50,6 +50,14 @@ Broches encore libres : 13 (GPIO 420), 23 (502), 25 (466), 26 (467),
 
 ### Attention au câblage
 
+Le connecteur n'est **pas numéroté comme celui du Pi**. Le Pi alterne les
+broches impaires et paires d'une rangée à l'autre ; le VIM4 numérote **par
+rangée** : 1 à 20 sur la première, 21 à 40 sur la seconde, la broche 21 faisant
+face à la broche 1. La broche 37 est donc la 17ᵉ de la seconde rangée, en face
+de la 17. Repérer la broche 1 sur la sérigraphie et compter avant de brancher :
+un fil placé « comme sur le Pi » tombe sur une autre broche, et la LED reste
+éteinte alors que pibooth la commande.
+
 Les broches d'alimentation ne sont **pas** au même endroit que sur le Pi :
 
 | Broche | Raspberry Pi | Khadas VIM4 |
@@ -65,6 +73,25 @@ Réutiliser le faisceau du Pi tel quel peut détruire la carte. Masses du VIM4 :
 Les résistances de tirage internes ne sont pas garanties sur toutes les lignes
 Amlogic : prévoir des **pull-up externes de 10 kΩ** sur les boutons. Le backend
 émet un avertissement quand le noyau refuse le tirage interne.
+
+Une sortie GPIO donne 3,3 V et quelques mA : assez pour une LED simple avec
+une résistance série de 330 Ω à 1 kΩ, pas pour une lampe de bouton d'arcade en
+5 V ou 12 V, qu'il faut commander par un transistor.
+
+Le flash (`flash_led_pin`) commande un **module relais 1 voie** à optocoupleur
+(relais SRD-05VDC, « high/low level trigger ») :
+
+| Borne du module | Broche du VIM4 |
+|---|---|
+| DC+ | 2 (5V) |
+| DC− | 34 ou 40 (GND) |
+| IN | 33 |
+
+La bobine du relais demande **5 V** : alimenté en 3,3 V, le module reçoit le
+signal mais le relais ne colle pas. Le cavalier du module se place sur **H**,
+pibooth activant le flash par un état haut (`flash_led_active_high = True`) ;
+sur L, régler cette option à `False`. Le côté puissance du relais commute le
+secteur : le câbler hors tension et l'isoler du reste du montage.
 
 Enfin, certaines broches sont multiplexées (I2C, UART, I2S). Si une ligne
 refuse d'être réservée, la reconfigurer en GPIO via un *device tree overlay*.
