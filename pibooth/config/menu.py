@@ -139,7 +139,8 @@ class PiConfigMenu(object):
             submenu = self._build_submenu(name)
             if len(submenu._widgets) > 2:  # More than its two vertical margins
                 self._main_menu.add.button(submenu.get_title(), submenu)
-        self._main_menu.add.button('Exit', self._on_exit)
+        self._main_menu.add.button('Close', self._on_close)
+        self._main_menu.add.button('Quit pibooth', self._show_quit_confirmation)
         self._main_menu.add.vertical_margin(20)
 
     def _build_submenu(self, section):
@@ -360,27 +361,29 @@ class PiConfigMenu(object):
         self._on_close()
         exit(0)
 
-    def _build_confirm_menu(self):
-        confirm_size = (int(self.size[0] * 0.6), int(self.size[1] * 0.5))
-        menu = pgm.Menu(title="Quitter le menu ?",
-                        width=confirm_size[0],
-                        height=confirm_size[1],
-                        theme=THEME_DARK,
-                        touchscreen=True)
-        menu.add.vertical_margin(20)
-        menu.add.button("Sauvegarder & quitter", self._on_confirm_save)
-        menu.add.button("Quitter sans sauver", self._on_confirm_discard)
-        menu.add.button("Annuler", self._on_confirm_cancel)
-        menu.add.vertical_margin(20)
-        menu.disable()
-        return menu
+    def _show_popup(self, title, buttons):
+        """Open a popup over the main menu with the given (text, action) buttons."""
+        size = (int(self.size[0] * 0.6), int(self.size[1] * 0.5))
+        self._confirm_menu = pgm.Menu(title=title,
+                                      width=size[0],
+                                      height=size[1],
+                                      theme=THEME_DARK,
+                                      touchscreen=True)
+        self._confirm_menu.add.vertical_margin(20)
+        for text, action in buttons:
+            self._confirm_menu.add.button(text, action)
+        self._confirm_menu.add.vertical_margin(20)
 
     def show_close_confirmation(self):
         """Open the save/discard/cancel popup over the main menu."""
-        if self._confirm_menu is None:
-            self._confirm_menu = self._build_confirm_menu()
-        self._confirm_menu.full_reset()
-        self._confirm_menu.enable()
+        self._show_popup("Quitter le menu ?", (("Sauvegarder & quitter", self._on_confirm_save),
+                                               ("Quitter sans sauver", self._on_confirm_discard),
+                                               ("Annuler", self._on_confirm_cancel)))
+
+    def _show_quit_confirmation(self):
+        """Ask before stopping pibooth: a stray tap would stop the booth."""
+        self._show_popup("Arrêter pibooth ?", (("Arrêter pibooth", self._on_exit),
+                                               ("Annuler", self._on_confirm_cancel)))
 
     def is_confirming(self):
         return self._confirm_menu is not None and self._confirm_menu.is_enabled()

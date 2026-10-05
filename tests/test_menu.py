@@ -91,3 +91,30 @@ class BackButtonTest(unittest.TestCase):
         self.assertIs(main.get_current(), queue)
         self._button(queue, 'Back').apply()
         self.assertIs(main.get_current(), printer)
+
+    def _confirm_button(self, title):
+        return self._button(self.menu._confirm_menu, title)
+
+    def test_close_returns_to_the_booth(self):
+        self.menu.show()
+        with mock.patch('builtins.exit') as exit_:
+            self._button(self.menu._main_menu, 'Close').apply()
+        self.assertFalse(self.menu.is_shown())
+        exit_.assert_not_called()
+
+    def test_quit_is_cancelled_by_default_choice(self):
+        self.menu.show()
+        self._button(self.menu._main_menu, 'Quit pibooth').apply()
+        self.assertTrue(self.menu.is_confirming())
+        with mock.patch('builtins.exit') as exit_:
+            self._confirm_button('Annuler').apply()
+        self.assertFalse(self.menu.is_confirming())
+        self.assertTrue(self.menu.is_shown())
+        exit_.assert_not_called()
+
+    def test_quit_confirmed_stops_pibooth(self):
+        self.menu.show()
+        self._button(self.menu._main_menu, 'Quit pibooth').apply()
+        with mock.patch('builtins.exit') as exit_:
+            self._confirm_button('Arrêter pibooth').apply()
+        exit_.assert_called_once_with(0)
