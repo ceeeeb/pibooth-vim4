@@ -5,8 +5,13 @@ import time
 import pygame
 try:
     import gphoto2 as gp
-except ImportError:
-    gp = None  # gphoto2 is optional
+except Exception as ex:
+    # 'gphoto2' is optional, the import may also fail with an 'OSError' when the
+    # Python package is installed but the 'libgphoto2' library is missing.
+    gp = None
+    GPHOTO2_ERROR = ex
+else:
+    GPHOTO2_ERROR = None
 from PIL import Image, ImageFilter
 from pibooth.pictures import sizing
 from pibooth.utils import LOGGER, PoolingTimer, pkill
@@ -24,7 +29,8 @@ def get_gp_camera_proxy(port=None):
     :type port: str
     """
     if not gp:
-        return None  # gPhoto2 is not installed
+        LOGGER.debug("gPhoto2 not available: %s", GPHOTO2_ERROR)
+        return None
 
     pkill('*gphoto2*')
     if hasattr(gp, 'gp_camera_autodetect'):
@@ -58,7 +64,12 @@ def get_gp_camera_proxy(port=None):
 def gp_log_callback(level, domain, string, data=None):
     """Logging callback for gphoto2.
     """
-    LOGGER.getChild('gphoto2').debug(domain.decode("utf-8") + u': ' + string.decode("utf-8"))
+    # python-gphoto2 >= 2.5 passes str, older versions pass bytes
+    if isinstance(domain, bytes):
+        domain = domain.decode("utf-8")
+    if isinstance(string, bytes):
+        string = string.decode("utf-8")
+    LOGGER.getChild('gphoto2').debug(domain + ': ' + string)
 
 
 class GpCamera(BaseCamera):
