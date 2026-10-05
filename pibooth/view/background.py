@@ -12,7 +12,9 @@ ARROW_BOTTOM = 'bottom'
 ARROW_HIDDEN = 'hidden'
 ARROW_TOUCH = 'touchscreen'
 
-PRINT_BUTTON_RING_COLOR = (40, 180, 80)
+BUTTON_RING_COLOR = (40, 180, 80)
+# Side of the round buttons of the wait screen, relative to the window height
+BUTTON_SIDE_RATIO = 0.22
 
 
 def multiline_text_to_surfaces(text, color, rect, align='center'):
@@ -204,9 +206,27 @@ class IntroBackground(Background):
         self.arrow_offset = arrow_offset
         self.left_arrow = None
         self.left_arrow_pos = None
+        self.capture_button = None
+        self.capture_button_pos = None
+
+    BUTTONS_COUNT = 1
+
+    def _button_centers(self, side):
+        """Return the centers of the round buttons, stacked in the middle of
+        the left half and centered on the height of the picture shown on the
+        right."""
+        gap = side // 4
+        top = self._rect.height // 2 - (self.BUTTONS_COUNT * side + (self.BUTTONS_COUNT - 1) * gap) // 2
+        return [(self._rect.width // 4, top + side // 2 + index * (side + gap))
+                for index in range(self.BUTTONS_COUNT)]
 
     def resize(self, screen):
         Background.resize(self, screen)
+        if self._need_update:
+            # Camera drawn where the intro text used to be: guests tap it
+            side = int(self._rect.height * BUTTON_SIDE_RATIO)
+            self.capture_button = ring_button("camera.png", side, self._text_color)
+            self.capture_button_pos = self.capture_button.get_rect(center=self._button_centers(side)[0]).topleft
         if self._need_update and self.arrow_location != ARROW_HIDDEN:
             if self.arrow_location == ARROW_TOUCH:
                 size = (self._rect.width * 0.2, self._rect.height * 0.2)
@@ -231,51 +251,39 @@ class IntroBackground(Background):
             self.left_arrow_pos = (x - self.arrow_offset, y)
 
     def resize_texts(self):
-        """Update text surfaces.
-        """
-        if self.arrow_location == ARROW_HIDDEN:
-            rect = pygame.Rect(self._text_border, self._text_border,
-                               self._rect.width / 2 - 2 * self._text_border,
-                               self._rect.height - 2 * self._text_border)
-            align = 'center'
-        elif self.arrow_location == ARROW_BOTTOM:
-            rect = pygame.Rect(self._text_border, self._text_border,
-                               self._rect.width / 2 - 2 * self._text_border,
-                               self._rect.height * 0.6 - self._text_border)
-            align = 'bottom-center'
-        elif self.arrow_location == ARROW_TOUCH:
-            rect = pygame.Rect(self._text_border, self._text_border,
-                               self._rect.width / 2 - 2 * self._text_border,
-                               self._rect.height * 0.4 - self._text_border)
-            align = 'bottom-center'
-        else:
-            rect = pygame.Rect(self._text_border, self._rect.height * 0.4,
-                               self._rect.width / 2 - 2 * self._text_border,
-                               self._rect.height * 0.6 - self._text_border)
-            align = 'top-center'
-        Background.resize_texts(self, rect, align)
+        """The camera button replaces the intro text."""
+        self._texts = []
+
+    def get_capture_button_rect(self):
+        """Return the area of the camera guests tap to take a picture, or None."""
+        if not self.capture_button:
+            return None
+        return pygame.Rect(self.capture_button_pos, self.capture_button.get_size())
 
     def paint(self, screen):
         Background.paint(self, screen)
+        screen.blit(self.capture_button, self.capture_button_pos)
         if self.arrow_location != ARROW_HIDDEN:
             screen.blit(self.left_arrow, self.left_arrow_pos)
 
 
-def ring_button(icon, color):
-    """Return a transparent surface with the icon centered in a ring of the
-    given color, edges antialiased."""
-    side = int(max(icon.get_size()) * 1.6)
+def ring_button(icon_name, side, icon_color, ring_color=BUTTON_RING_COLOR):
+    """Return a transparent square surface of the given side holding the
+    pictogram centered in a ring, edges antialiased."""
+    icon = pictures.get_pygame_image(icon_name, (side * 0.62, side * 0.62), color=icon_color)
     radius = side // 2
     thickness = max(3, side // 18)
     surface = pygame.Surface((side, side), pygame.SRCALPHA)
-    pygame.draw.circle(surface, color, (radius, radius), radius - 1, thickness)
-    gfxdraw.aacircle(surface, radius, radius, radius - 1, color)
-    gfxdraw.aacircle(surface, radius, radius, radius - thickness, color)
+    pygame.draw.circle(surface, ring_color, (radius, radius), radius - 1, thickness)
+    gfxdraw.aacircle(surface, radius, radius, radius - 1, ring_color)
+    gfxdraw.aacircle(surface, radius, radius, radius - thickness, ring_color)
     surface.blit(icon, icon.get_rect(center=(radius, radius)))
     return surface
 
 
 class IntroWithPrintBackground(IntroBackground):
+
+    BUTTONS_COUNT = 2
 
     def __init__(self, arrow_location=ARROW_BOTTOM, arrow_offset=0):
         IntroBackground.__init__(self, arrow_location, arrow_offset)
@@ -295,13 +303,10 @@ class IntroWithPrintBackground(IntroBackground):
     def resize(self, screen):
         IntroBackground.resize(self, screen)
         if self._need_update:
-            # Printer drawn where the print hint text used to be: guests tap it
-            icon = pictures.get_pygame_image(
-                "printer.png", (self._rect.width * 0.08, self._rect.height * 0.13), color=self._text_color)
-            self.print_button = ring_button(icon, PRINT_BUTTON_RING_COLOR)
-            rect = self.print_button.get_rect(centerx=int(self._rect.width * 0.40))
-            rect.bottom = int(self._rect.height * 0.92)
-            self.print_button_pos = rect.topleft
+            # Printer under the camera: guests tap it
+            side = int(self._rect.height * BUTTON_SIDE_RATIO)
+            self.print_button = ring_button("printer.png", side, self._text_color)
+            self.print_button_pos = self.print_button.get_rect(center=self._button_centers(side)[1]).topleft
         if self._need_update and self.arrow_location != ARROW_HIDDEN:
             size = (self._rect.width * 0.1, self._rect.height * 0.1)
             if self.arrow_location == ARROW_TOUCH:

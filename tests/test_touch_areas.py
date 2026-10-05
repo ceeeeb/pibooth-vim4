@@ -14,6 +14,7 @@ from pibooth.booth import PiApplication  # noqa: E402
 
 SCREEN = (1600, 900)
 PRINT_BUTTON = pygame.Rect(560, 650, 160, 160)  # In the left half, as on the wait screen
+CAPTURE_BUTTON = pygame.Rect(320, 250, 200, 200)
 
 
 def tap(x, y):
@@ -27,6 +28,7 @@ class TouchAreasTest(unittest.TestCase):
         self.app._window = mock.Mock(display_size=SCREEN)
         self.app._window.get_rect.return_value = pygame.Rect((0, 0), SCREEN)
         self.app._window.get_print_button_rect.return_value = PRINT_BUTTON
+        self.app._window.get_capture_button_rect.return_value = None  # Screens without camera button
         self.app._config = mock.Mock()
         self.app._config.getboolean.return_value = False  # touch_flip
 
@@ -47,6 +49,16 @@ class TouchAreasTest(unittest.TestCase):
         self.assertIsNotNone(self.app.find_print_event(events))
         self.app._window.get_print_button_rect.return_value = None
         self.assertIsNone(self.app.find_capture_event(events))
+
+    def test_tapping_the_camera_button_takes_a_picture(self):
+        self.app._window.get_capture_button_rect.return_value = CAPTURE_BUTTON
+        events = [tap(*CAPTURE_BUTTON.center)]
+        self.assertIsNotNone(self.app.find_capture_event(events))
+        self.assertIsNone(self.app.find_print_event(events))
+
+    def test_only_the_camera_button_takes_a_picture_when_shown(self):
+        self.app._window.get_capture_button_rect.return_value = CAPTURE_BUTTON
+        self.assertIsNone(self.app.find_capture_event([tap(100, 100)]))
 
     def test_left_half_takes_a_picture_without_print_button(self):
         self.app._window.get_print_button_rect.return_value = None
