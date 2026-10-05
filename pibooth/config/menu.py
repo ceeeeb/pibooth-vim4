@@ -81,6 +81,17 @@ def _counters(counters):
     return [pattern.format(name.replace("_", " ").capitalize(), counters[name]) for name in counters]
 
 
+def _printer_tasks(printer):
+    """Return the formatted text for the printer queue state.
+    """
+    try:
+        tasks = len(printer.get_all_tasks())
+    except Exception as ex:  # The CUPS server may have stopped since startup
+        LOGGER.warning("Can not read the printer queue: %s", ex)
+        tasks = '?'
+    return '{:.<25} {: >4}'.format('Tasks in queue', tasks)
+
+
 class PiConfigMenu(object):
 
     def __init__(self, plugins_manager, configuration, application, window, onclose=None):
@@ -175,6 +186,12 @@ class PiConfigMenu(object):
                                 self._build_submenu_plugins("Plugins"),
                                 margin=(self.size[0] // 2 - 105, 0))
 
+        if section.lower() == 'printer' and self.app.printer.is_installed():
+            menu.add.vertical_margin(40)
+            menu.add.button("Printer queue",
+                            self._build_submenu_printer("Printer queue"),
+                            margin=(self.size[0] // 2 - 100, 0))
+
         menu.add.vertical_margin(20)
         return menu
 
@@ -189,6 +206,17 @@ class PiConfigMenu(object):
             labels.append(menu.add.label(text))
         menu.add.vertical_margin(40)
         menu.add.button("Reset all", self._on_counters_reset, labels)
+        return menu
+
+    def _build_submenu_printer(self, title):
+        menu = pgm.Menu(title=title.capitalize(),
+                        width=self.size[0],
+                        height=self.size[1],
+                        theme=SUBTHEME2_DARK,
+                        touchscreen=True)
+        label = menu.add.label(_printer_tasks(self.app.printer))
+        menu.add.vertical_margin(40)
+        menu.add.button("Cancel all tasks", self._on_printer_cancel, label)
         return menu
 
     def _build_submenu_plugins(self, title):
@@ -256,6 +284,16 @@ class PiConfigMenu(object):
         self.app.count.reset()
         for label, text in zip(labels, _counters(self.app.count)):
             label.set_title(text)
+
+    def _on_printer_cancel(self, label):
+        """Called when all tasks in the printer queue are canceled.
+        """
+        try:
+            self.app.printer.cancel_all_tasks()
+            LOGGER.info("All tasks canceled in the printer queue")
+        except Exception as ex:  # A CUPS failure (printer disabled, server gone) shall not close the menu
+            LOGGER.warning("Can not cancel the printer queue: %s", ex)
+        label.set_title(_printer_tasks(self.app.printer))
 
     def _on_plugin_toggled(self, activated, **kwargs):
         """Called when a plugin active state is toggled.
