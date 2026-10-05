@@ -626,6 +626,7 @@ step_config() {
     fi
 
     configure_touch_flip "${config_file}"
+    configure_printer_name "${config_file}"
 
     local pictures_dir="${PIBOOTH_HOME}/Pictures/pibooth"
     sudo -u "${PIBOOTH_USER}" mkdir -p "${pictures_dir}"
@@ -646,6 +647,24 @@ configure_touch_flip() {
     fi
     sudo sed -i "/^\[WINDOW\]/a touch_flip = ${touch_flip}" "${config_file}"
     ok "retournement tactile : touch_flip = ${touch_flip}"
+}
+
+# Avec 'default', pibooth imprime sur la première file que liste CUPS quand
+# aucune n'est par défaut, parfois une imprimante de bureau découverte sur le
+# réseau : la file de la SELPHY est donc nommée explicitement.
+configure_printer_name() {
+    local config_file="$1"
+
+    if ! grep -q "^printer_name = A_RENSEIGNER$" "${config_file}"; then
+        ok "imprimante déjà réglée : $(grep "^printer_name" "${config_file}")"
+        return 0
+    fi
+    if [[ -z "${PRINTER_DHCP_NAME}" ]]; then
+        warn "printer_name à renseigner avec le nom de la file CUPS (lpstat -p)"
+        return 0
+    fi
+    sudo sed -i "s/^printer_name = A_RENSEIGNER$/printer_name = ${PRINTER_QUEUE}/" "${config_file}"
+    ok "imprimante : printer_name = ${PRINTER_QUEUE}"
 }
 
 # --- Résumé ----------------------------------------------------------------
