@@ -319,6 +319,11 @@ class PiApplication(object):
             if (event.type == pygame.MOUSEBUTTONUP and event.button in (1, 2, 3)) or event.type == pygame.FINGERUP:
                 pos = self._get_event_pos(event)
                 rect = self._window.get_rect()
+                # The printer button may lie in the left half: tapping it prints
+                # only, even when printing has just hidden the button
+                print_rect = self._window.get_print_button_rect()
+                if getattr(event, 'print_tap', False) or (print_rect and print_rect.collidepoint(pos)):
+                    continue
                 if pygame.Rect(0, 0, rect.width // 2, rect.height).collidepoint(pos):
                     return event
             if event.type == BUTTONDOWN and event.capture:
@@ -341,6 +346,7 @@ class PiApplication(object):
                     rect = self._window.get_rect()
                     rect = pygame.Rect(rect.width // 2, 0, rect.width // 2, rect.height)
                 if rect.collidepoint(self._get_event_pos(event)):
+                    event.print_tap = True
                     return event
             if event.type == BUTTONDOWN and event.printer:
                 return event
