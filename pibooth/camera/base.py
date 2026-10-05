@@ -90,7 +90,7 @@ class BaseCamera(object):
         draw = ImageDraw.Draw(image)
 
         font = fonts.get_pil_font(text, fonts.CURRENT, 0.9 * size[0], 0.9 * size[1])
-        _, _, txt_width, txt_height = draw.textbbox((0, 0), text, font=font)
+        txt_width, txt_height = fonts.get_pil_text_size(font, text)
 
         position = ((size[0] - txt_width) // 2, (size[1] - txt_height) // 2 - size[1] // 10)
         draw.text(position, text, (255, 255, 255, alpha), font=font)

@@ -21,8 +21,8 @@ class FontFitTest(unittest.TestCase):
 
     @staticmethod
     def _fits(font, size, width, height):
-        _, _, right, bottom = font.font_variant(size=size).getbbox(TEXT)
-        return right <= width and bottom <= height
+        text_width, text_height = fonts.get_pil_text_size(font.font_variant(size=size), TEXT)
+        return text_width <= width and text_height <= height
 
     def test_font_size_matches_the_rectangle(self):
         # The search returns the first size that overflows (inherited from
@@ -32,6 +32,22 @@ class FontFitTest(unittest.TestCase):
                 font = fonts.get_pil_font(TEXT, FONT, width, height)
                 self.assertTrue(self._fits(font, font.size - 1, width, height))
                 self.assertFalse(self._fits(font, font.size + 1, width, height))
+
+
+class TextSizeTest(unittest.TestCase):
+
+    def test_size_ignores_a_glyph_overflowing_on_the_left(self):
+        # The digits of Amatic-Bold start left of the origin at this size
+        font = fonts.get_pil_font('3', FONT, 10000, 300).font_variant(size=300)
+        left, _, right, bottom = font.getbbox('3')
+        self.assertLess(left, 0)
+        self.assertEqual(fonts.get_pil_text_size(font, '3'), (right - left, bottom))
+
+    def test_size_starts_at_the_origin(self):
+        font = fonts.get_pil_font(TEXT, FONT, 600, 80)
+        left, _, right, bottom = font.getbbox(TEXT)
+        self.assertGreaterEqual(left, 0)
+        self.assertEqual(fonts.get_pil_text_size(font, TEXT), (right, bottom))
 
 
 class PictureFactoryTest(unittest.TestCase):
