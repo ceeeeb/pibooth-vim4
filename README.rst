@@ -34,7 +34,7 @@ virtualenv::
 
 Or directly from git::
 
-    pip install git+https://github.com/ceeeeb/pibooth.git@v2.0.8.2
+    pip install git+https://github.com/ceeeeb/pibooth-vim4.git@main
 
 Plugins that depend on ``pibooth>=2.0.0`` (e.g. ``pibooth-pcloud``,
 ``pibooth-nextcloud``) will not see ``pibooth-ceeeeb`` as satisfying the
