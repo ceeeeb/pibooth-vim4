@@ -40,6 +40,14 @@ class TouchAreasTest(unittest.TestCase):
         self.assertIsNotNone(self.app.find_capture_event(events))
         self.assertIsNone(self.app.find_print_event(events))
 
+    def test_print_tap_takes_no_picture_once_the_button_is_hidden(self):
+        # Printing the last allowed duplicate redraws the wait screen without
+        # the button before the capture area reads the same events
+        events = [tap(*PRINT_BUTTON.center)]
+        self.assertIsNotNone(self.app.find_print_event(events))
+        self.app._window.get_print_button_rect.return_value = None
+        self.assertIsNone(self.app.find_capture_event(events))
+
     def test_left_half_takes_a_picture_without_print_button(self):
         self.app._window.get_print_button_rect.return_value = None
         self.assertIsNotNone(self.app.find_capture_event([tap(*PRINT_BUTTON.center)]))
