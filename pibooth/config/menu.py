@@ -73,6 +73,19 @@ def _find(choices, value):
     return 0
 
 
+def _add_back_button(menu, theme):
+    """Add a button large enough to leave the submenu with a finger: the
+    arrow of the title bar is too small on a touchscreen."""
+    menu.add.vertical_margin(30)
+    menu.add.button("Back", pgm.events.BACK,
+                    align=pgm.locals.ALIGN_CENTER,
+                    font_size=34,
+                    padding=(14, 60),
+                    background_color=theme.title_background_color,
+                    font_color=theme.title_font_color,
+                    selection_color=theme.title_font_color)
+
+
 def _counters(counters):
     """Return the formatted text for counters.
     """
@@ -124,9 +137,10 @@ class PiConfigMenu(object):
 
         for name in DEFAULT:
             submenu = self._build_submenu(name)
-            if len(submenu._widgets) > 2:
+            if len(submenu._widgets) > 2:  # More than its two vertical margins
                 self._main_menu.add.button(submenu.get_title(), submenu)
-        self._main_menu.add.button('Exit', self._on_exit)
+        self._main_menu.add.button('Close', self._on_close)
+        self._main_menu.add.button('Quit pibooth', self._show_quit_confirmation)
         self._main_menu.add.vertical_margin(20)
 
     def _build_submenu(self, section):
@@ -192,6 +206,8 @@ class PiConfigMenu(object):
                             self._build_submenu_printer("Printer queue"),
                             margin=(self.size[0] // 2 - 100, 0))
 
+        if len(menu._widgets) > 1:  # The section has options (see __init__)
+            _add_back_button(menu, SUBTHEME1_DARK)
         menu.add.vertical_margin(20)
         return menu
 
@@ -206,6 +222,7 @@ class PiConfigMenu(object):
             labels.append(menu.add.label(text))
         menu.add.vertical_margin(40)
         menu.add.button("Reset all", self._on_counters_reset, labels)
+        _add_back_button(menu, SUBTHEME2_DARK)
         return menu
 
     def _build_submenu_printer(self, title):
@@ -217,6 +234,7 @@ class PiConfigMenu(object):
         label = menu.add.label(_printer_tasks(self.app.printer))
         menu.add.vertical_margin(40)
         menu.add.button("Cancel all tasks", self._on_printer_cancel, label)
+        _add_back_button(menu, SUBTHEME2_DARK)
         return menu
 
     def _build_submenu_plugins(self, title):
@@ -240,6 +258,7 @@ class PiConfigMenu(object):
                                    section='GENERAL',
                                    option='plugins_disabled',
                                    plugin=plugin)
+        _add_back_button(menu, SUBTHEME2_DARK)
         return menu
 
     def _on_keyboard_event(self, text):
@@ -342,27 +361,30 @@ class PiConfigMenu(object):
         self._on_close()
         exit(0)
 
-    def _build_confirm_menu(self):
-        confirm_size = (int(self.size[0] * 0.6), int(self.size[1] * 0.5))
-        menu = pgm.Menu(title="Quitter le menu ?",
-                        width=confirm_size[0],
-                        height=confirm_size[1],
-                        theme=THEME_DARK,
-                        touchscreen=True)
-        menu.add.vertical_margin(20)
-        menu.add.button("Sauvegarder & quitter", self._on_confirm_save)
-        menu.add.button("Quitter sans sauver", self._on_confirm_discard)
-        menu.add.button("Annuler", self._on_confirm_cancel)
-        menu.add.vertical_margin(20)
-        menu.disable()
-        return menu
+    def _show_popup(self, title, buttons):
+        """Open a popup over the main menu with the given (text, action) buttons."""
+        size = (int(self.size[0] * 0.6), int(self.size[1] * 0.5))
+        self._confirm_menu = pgm.Menu(title=title,
+                                      width=size[0],
+                                      height=size[1],
+                                      theme=THEME_DARK,
+                                      touchscreen=True)
+        self._confirm_menu.add.vertical_margin(20)
+        for text, action in buttons:
+            self._confirm_menu.add.button(text, action)
+        self._confirm_menu.add.vertical_margin(20)
 
     def show_close_confirmation(self):
         """Open the save/discard/cancel popup over the main menu."""
-        if self._confirm_menu is None:
-            self._confirm_menu = self._build_confirm_menu()
-        self._confirm_menu.full_reset()
-        self._confirm_menu.enable()
+        self._show_popup("Quitter le menu ?", (("Sauvegarder & quitter", self._on_confirm_save),
+                                               ("Quitter sans sauver", self._on_confirm_discard),
+                                               ("Annuler", self._on_confirm_cancel)))
+
+    def _show_quit_confirmation(self):
+        """Ask before stopping pibooth: a stray tap would stop the booth."""
+        # Cancel first: it is the selected choice, applied by the hardware button
+        self._show_popup("Arrêter pibooth ?", (("Annuler", self._on_confirm_cancel),
+                                               ("Arrêter pibooth", self._on_exit)))
 
     def is_confirming(self):
         return self._confirm_menu is not None and self._confirm_menu.is_enabled()
