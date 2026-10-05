@@ -2,6 +2,7 @@
 
 import os.path as osp
 import pygame
+from pygame import gfxdraw
 
 from pibooth import fonts, pictures
 from pibooth.language import get_translated_text
@@ -10,6 +11,8 @@ ARROW_TOP = 'top'
 ARROW_BOTTOM = 'bottom'
 ARROW_HIDDEN = 'hidden'
 ARROW_TOUCH = 'touchscreen'
+
+PRINT_BUTTON_RING_COLOR = (40, 180, 80)
 
 
 def multiline_text_to_surfaces(text, color, rect, align='center'):
@@ -258,6 +261,20 @@ class IntroBackground(Background):
             screen.blit(self.left_arrow, self.left_arrow_pos)
 
 
+def ring_button(icon, color):
+    """Return a transparent surface with the icon centered in a ring of the
+    given color, edges antialiased."""
+    side = int(max(icon.get_size()) * 1.6)
+    radius = side // 2
+    thickness = max(3, side // 18)
+    surface = pygame.Surface((side, side), pygame.SRCALPHA)
+    pygame.draw.circle(surface, color, (radius, radius), radius - 1, thickness)
+    gfxdraw.aacircle(surface, radius, radius, radius - 1, color)
+    gfxdraw.aacircle(surface, radius, radius, radius - thickness, color)
+    surface.blit(icon, icon.get_rect(center=(radius, radius)))
+    return surface
+
+
 class IntroWithPrintBackground(IntroBackground):
 
     def __init__(self, arrow_location=ARROW_BOTTOM, arrow_offset=0):
@@ -279,8 +296,9 @@ class IntroWithPrintBackground(IntroBackground):
         IntroBackground.resize(self, screen)
         if self._need_update:
             # Printer drawn where the print hint text used to be: guests tap it
-            self.print_button = pictures.get_pygame_image(
-                "printer.png", (self._rect.width * 0.14, self._rect.height * 0.22), color=self._text_color)
+            icon = pictures.get_pygame_image(
+                "printer.png", (self._rect.width * 0.08, self._rect.height * 0.13), color=self._text_color)
+            self.print_button = ring_button(icon, PRINT_BUTTON_RING_COLOR)
             rect = self.print_button.get_rect(centerx=int(self._rect.width * 0.40))
             rect.bottom = int(self._rect.height * 0.92)
             self.print_button_pos = rect.topleft
