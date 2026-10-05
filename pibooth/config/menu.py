@@ -73,6 +73,19 @@ def _find(choices, value):
     return 0
 
 
+def _add_back_button(menu, theme):
+    """Add a button large enough to leave the submenu with a finger: the
+    arrow of the title bar is too small on a touchscreen."""
+    menu.add.vertical_margin(30)
+    menu.add.button("Back", pgm.events.BACK,
+                    align=pgm.locals.ALIGN_CENTER,
+                    font_size=34,
+                    padding=(14, 60),
+                    background_color=theme.title_background_color,
+                    font_color=theme.title_font_color,
+                    selection_color=theme.title_font_color)
+
+
 def _counters(counters):
     """Return the formatted text for counters.
     """
@@ -124,7 +137,7 @@ class PiConfigMenu(object):
 
         for name in DEFAULT:
             submenu = self._build_submenu(name)
-            if len(submenu._widgets) > 2:
+            if len(submenu._widgets) > 2:  # More than its two vertical margins
                 self._main_menu.add.button(submenu.get_title(), submenu)
         self._main_menu.add.button('Exit', self._on_exit)
         self._main_menu.add.vertical_margin(20)
@@ -192,6 +205,8 @@ class PiConfigMenu(object):
                             self._build_submenu_printer("Printer queue"),
                             margin=(self.size[0] // 2 - 100, 0))
 
+        if len(menu._widgets) > 1:  # The section has options (see __init__)
+            _add_back_button(menu, SUBTHEME1_DARK)
         menu.add.vertical_margin(20)
         return menu
 
@@ -206,6 +221,7 @@ class PiConfigMenu(object):
             labels.append(menu.add.label(text))
         menu.add.vertical_margin(40)
         menu.add.button("Reset all", self._on_counters_reset, labels)
+        _add_back_button(menu, SUBTHEME2_DARK)
         return menu
 
     def _build_submenu_printer(self, title):
@@ -217,6 +233,7 @@ class PiConfigMenu(object):
         label = menu.add.label(_printer_tasks(self.app.printer))
         menu.add.vertical_margin(40)
         menu.add.button("Cancel all tasks", self._on_printer_cancel, label)
+        _add_back_button(menu, SUBTHEME2_DARK)
         return menu
 
     def _build_submenu_plugins(self, title):
@@ -240,6 +257,7 @@ class PiConfigMenu(object):
                                    section='GENERAL',
                                    option='plugins_disabled',
                                    plugin=plugin)
+        _add_back_button(menu, SUBTHEME2_DARK)
         return menu
 
     def _on_keyboard_event(self, text):
