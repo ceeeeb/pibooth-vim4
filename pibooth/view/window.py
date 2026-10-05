@@ -197,6 +197,13 @@ class PiWindow(object):
         pos = (self.surface.get_rect().centerx + self.surface.get_rect().centerx // 2, self.surface.get_rect().centery)
         return image.get_rect(center=pos) if image else pos
 
+    def get_capture_button_rect(self):
+        """Return the area of the displayed capture button, or None if the
+        current view has none.
+        """
+        getter = getattr(self._current_background, 'get_capture_button_rect', None)
+        return getter() if getter else None
+
     def get_print_button_rect(self):
         """Return the area of the displayed print button, or None if the
         current view has none.
