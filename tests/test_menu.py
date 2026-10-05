@@ -118,3 +118,8 @@ class BackButtonTest(unittest.TestCase):
         with mock.patch('builtins.exit') as exit_:
             self._confirm_button('Arrêter pibooth').apply()
         exit_.assert_called_once_with(0)
+
+    def test_quit_confirmation_selects_cancel(self):
+        self.menu.show()
+        self._button(self.menu._main_menu, 'Quit pibooth').apply()
+        self.assertEqual(self.menu._confirm_menu.get_selected_widget().get_title(), 'Annuler')

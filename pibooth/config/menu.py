@@ -382,8 +382,9 @@ class PiConfigMenu(object):
 
     def _show_quit_confirmation(self):
         """Ask before stopping pibooth: a stray tap would stop the booth."""
-        self._show_popup("Arrêter pibooth ?", (("Arrêter pibooth", self._on_exit),
-                                               ("Annuler", self._on_confirm_cancel)))
+        # Cancel first: it is the selected choice, applied by the hardware button
+        self._show_popup("Arrêter pibooth ?", (("Annuler", self._on_confirm_cancel),
+                                               ("Arrêter pibooth", self._on_exit)))
 
     def is_confirming(self):
         return self._confirm_menu is not None and self._confirm_menu.is_enabled()
