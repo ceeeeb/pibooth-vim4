@@ -46,8 +46,8 @@ alimenté** : c'est la seule solution robuste.
 ## Installation
 
 ```bash
-git clone https://github.com/ceeeeb/pibooth.git
-cd pibooth/install
+git clone https://github.com/ceeeeb/pibooth-vim4.git
+cd pibooth-vim4/install
 HOTSPOT_SSID="Pibooth" HOTSPOT_PASSWORD="motdepasse" ./install.sh
 ```
 
