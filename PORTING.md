@@ -206,4 +206,5 @@ automatique) ne dépend pas de la carte. Le sudoers du portail Wi-Fi est limité
   doivent y être publiées pour que l'installation fonctionne sur VIM4. Le fork
   des lumières est renommé `pibooth-extra-lights-vim4`, le nom amont étant déjà
   pris ; `pibooth-forget-button` garde le sien et passe en 1.1.0 ;
-- vérifier les versions figées de `Pillow` et `pygame-menu` sur ARM64.
+- vérifier la version figée de `pygame-menu` sur ARM64 (`Pillow` n'est plus
+  figé depuis le passage à Pillow 10).

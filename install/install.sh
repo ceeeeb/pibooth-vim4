@@ -140,8 +140,8 @@ step_packages() {
         python3-tk
         network-manager nftables dnsmasq-base
         ffmpeg fonts-liberation2 fonts-noto-color-emoji
-        # Pillow 9.2.0, figé par pibooth, n'a pas de wheel pour Python 3.11+ :
-        # pip le compile, et sans ces en-têtes il ne sait plus écrire de texte.
+        # Sans wheel Pillow pour la carte (Raspberry Pi OS 32 bits, Python trop
+        # récent), pip le compile, et sans ces en-têtes il n'écrit plus de texte.
         libfreetype-dev libjpeg-dev zlib1g-dev libpng-dev
     )
 

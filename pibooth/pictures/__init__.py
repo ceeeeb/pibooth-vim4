@@ -94,7 +94,7 @@ def get_pygame_image(name, size=None, antialiasing=True, hflip=False, vflip=Fals
         if crop:
             pil_image = pil_image.crop(sizing.new_size_by_croping_ratio(pil_image.size, size))
         pil_image = pil_image.resize(sizing.new_size_keep_aspect_ratio(pil_image.size, size),
-                                     Image.ANTIALIAS if antialiasing else Image.NEAREST)
+                                     Image.LANCZOS if antialiasing else Image.NEAREST)
 
         image = pygame.image.frombuffer(pil_image.tobytes(), pil_image.size, pil_image.mode)
 

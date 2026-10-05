@@ -18,7 +18,7 @@ setup(
     include_package_data=True,
     package_data={'pibooth': ['fonts/*', 'pictures/*', 'pictures/assets/*', 'hardware/*.ini']},
     install_requires=[
-        'Pillow==9.2.0',
+        'Pillow>=10.0',
         'pygame>=1.9.6',
         'pygame-menu==4.0.7',
         'pygame-vkeyboard>=2.0.8',
@@ -41,5 +41,5 @@ setup(
             'pibooth-regen = pibooth.scripts.regenerate:main',
         ],
     },
-    python_requires='>=3.7',
+    python_requires='>=3.8',
 )
