@@ -96,7 +96,7 @@ class PiWindow(object):
         else:
             if resize:
                 image = pil_image.resize(sizing.new_size_keep_aspect_ratio(
-                    pil_image.size, image_size_max), Image.ANTIALIAS)
+                    pil_image.size, image_size_max), Image.LANCZOS)
             else:
                 image = pil_image
             image = pygame.image.frombuffer(image.tobytes(), image.size, image.mode)
