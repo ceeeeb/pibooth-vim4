@@ -14,7 +14,7 @@ setup(
     author='Vincent Verdeil, Antoine Rousseaux, Christophe (ceeeeb)',
     url='https://github.com/ceeeeb/pibooth',
     license='MIT',
-    packages=find_packages(),
+    packages=find_packages(exclude=['tests', 'tests.*']),
     include_package_data=True,
     package_data={'pibooth': ['fonts/*', 'pictures/*', 'pictures/assets/*', 'hardware/*.ini']},
     install_requires=[
