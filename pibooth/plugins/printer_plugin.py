@@ -32,7 +32,7 @@ class PrinterPlugin(object):
         app.count.remaining_duplicates = cfg.getint('PRINTER', 'max_duplicates')
 
     @pibooth.hookimpl
-    def state_wait_do(self, cfg, app, events):
+    def state_wait_do(self, cfg, app, win, events):
         if app.find_print_event(events) and app.previous_picture_file and app.printer.is_installed():
 
             if app.count.remaining_duplicates <= 0:
@@ -46,6 +46,7 @@ class PrinterPlugin(object):
                 return
 
             self.print_picture(cfg, app)
+            win.animate_print()
 
     @pibooth.hookimpl
     def state_processing_enter(self, cfg, app):

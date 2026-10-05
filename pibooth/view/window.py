@@ -11,6 +11,7 @@ from pygame import gfxdraw
 from PIL import Image
 from pibooth import pictures, fonts
 from pibooth.view import background
+from pibooth.view.flight import flight_point, flight_scale
 from pibooth.utils import LOGGER
 from pibooth.pictures import sizing
 
@@ -30,6 +31,7 @@ class PiWindow(object):
 
     CENTER = 'center'
     RIGHT = 'right'
+    PRINT_FLIGHT_DURATION = 0.8  # seconds
     LEFT = 'left'
     FULLSCREEN = 'fullscreen'
 
@@ -152,9 +154,7 @@ class PiWindow(object):
         if not self._print_number and not self._print_failure:
             return  # Dont show counter: no file in queue, no failure
 
-        smaller = self.surface.get_size()[1] if self.surface.get_size(
-        )[1] < self.surface.get_size()[0] else self.surface.get_size()[0]
-        side = int(smaller * 0.05)  # 5% of the window
+        side = self._print_queue_side()
 
         if side > 0:
             if self._print_failure:
@@ -175,6 +175,15 @@ class PiWindow(object):
             self.surface.blit(bg, rect.topleft)
             self.surface.blit(image, rect_image.topleft)
             self.surface.blit(label, rect_label.topleft)
+
+    def _print_queue_side(self):
+        """Return the side of the printer queue icon: 5% of the window."""
+        return int(min(self.surface.get_size()) * 0.05)
+
+    def _print_queue_center(self):
+        """Return the center of the printer queue icon, bottom left."""
+        side = self._print_queue_side()
+        return (10 + side // 2, self.surface.get_size()[1] - (side + 20) // 2)
 
     def _center_pos(self, image):
         """
@@ -337,6 +346,40 @@ class PiWindow(object):
                 pygame.event.pump()
                 pygame.display.update()
                 time.sleep(0.02)
+
+    def animate_print(self):
+        """Fly a copy of the displayed picture, framed like a paper print,
+        to the printer queue icon. Blocks for PRINT_FLIGHT_DURATION.
+        """
+        if not self._current_foreground:
+            return
+        pil_image, pos, _ = self._current_foreground
+        _, image = self._buffered_images.get(id(pil_image), (None, None))
+        if not image:
+            return
+
+        start = self._pos_map[pos](image)
+        border = max(2, image.get_width() // 30)
+        photo = pygame.Surface((image.get_width() + 2 * border, image.get_height() + 2 * border))
+        photo.fill((255, 255, 255))
+        photo.blit(image, (border, border))
+
+        end = self._print_queue_center()
+        arc_height = self.surface.get_size()[1] * 0.2
+        begin = time.time()
+        progress = 0
+        while progress < 1:
+            progress = min(1, (time.time() - begin) / self.PRINT_FLIGHT_DURATION)
+            scale = flight_scale(max(photo.get_size()), self._print_queue_side(), progress)
+            frame = pygame.transform.smoothscale(
+                photo, (max(1, int(photo.get_width() * scale)), max(1, int(photo.get_height() * scale))))
+            self.update()
+            self.surface.blit(frame, frame.get_rect(center=flight_point(start.center, end, arc_height, progress)))
+            pygame.event.pump()
+            pygame.display.update()
+            time.sleep(0.01)
+        self.update()
+        pygame.display.update()
 
     def set_capture_number(self, current_nbr, total_nbr):
         """Set the current number of captures taken.
