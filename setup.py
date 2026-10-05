@@ -7,18 +7,18 @@ long_description = open(README, encoding='utf-8').read() if osp.isfile(README) e
 
 setup(
     name='pibooth-ceeeeb',
-    version='2.0.12',
+    version='2.0.13',
     description='A photo booth application in pure Python for the Raspberry Pi (custom fork by ceeeeb).',
     long_description=long_description,
     long_description_content_type='text/x-rst',
     author='Vincent Verdeil, Antoine Rousseaux, Christophe (ceeeeb)',
-    url='https://github.com/ceeeeb/pibooth',
+    url='https://github.com/ceeeeb/pibooth-vim4',
     license='MIT',
     packages=find_packages(exclude=['tests', 'tests.*']),
     include_package_data=True,
     package_data={'pibooth': ['fonts/*', 'pictures/*', 'pictures/assets/*', 'hardware/*.ini']},
     install_requires=[
-        'Pillow==9.2.0',
+        'Pillow>=10.0',
         'pygame>=1.9.6',
         'pygame-menu==4.0.7',
         'pygame-vkeyboard>=2.0.8',
@@ -41,5 +41,5 @@ setup(
             'pibooth-regen = pibooth.scripts.regenerate:main',
         ],
     },
-    python_requires='>=3.7',
+    python_requires='>=3.8',
 )

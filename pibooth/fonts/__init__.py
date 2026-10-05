@@ -53,6 +53,23 @@ def get_filename(name):
     raise ValueError('System font "{0}" unknown, maybe you mean "{1}"'.format(name, most_similar))
 
 
+def get_pil_text_size(font, text):
+    """Return the (width, height) of the text as the ``getsize()`` method
+    removed in Pillow 10 measured it: from the origin to the right and bottom
+    edges of the text, a glyph overflowing on the left being ignored.
+
+    :param font: PIL.Font instance
+    :type font: object
+    :param text: text to measure
+    :type text: str
+
+    :return: (width, height)
+    :rtype: tuple
+    """
+    left, _, right, bottom = font.getbbox(text)
+    return right - min(left, 0), bottom
+
+
 def get_pil_font(text, font_name, max_width, max_height):
     """Create the PIL font object which fit the text to the given rectangle.
 
@@ -72,8 +89,8 @@ def get_pil_font(text, font_name, max_width, max_height):
     while start < end:
         k = (start + end) // 2
         font = ImageFont.truetype(font_name, k)
-        font_size = font.getsize(text)
-        if font_size[0] > max_width or font_size[1] > max_height:
+        width, height = get_pil_text_size(font, text)
+        if width > max_width or height > max_height:
             end = k
         else:
             start = k + 1

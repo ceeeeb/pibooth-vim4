@@ -318,8 +318,18 @@ class PiApplication(object):
                 return event
             if (event.type == pygame.MOUSEBUTTONUP and event.button in (1, 2, 3)) or event.type == pygame.FINGERUP:
                 pos = self._get_event_pos(event)
-                rect = self._window.get_rect()
-                if pygame.Rect(0, 0, rect.width // 2, rect.height).collidepoint(pos):
+                # A tap that printed takes no picture, even when printing has
+                # just hidden the printer button
+                if getattr(event, 'print_tap', False):
+                    continue
+                # Where a camera button is shown, only it takes a picture,
+                # elsewhere the left half does
+                rect = self._window.get_capture_button_rect()
+                if not rect:
+                    window = self._window.get_rect()
+                    rect = pygame.Rect(0, 0, window.width // 2, window.height)
+                print_rect = self._window.get_print_button_rect()
+                if rect.collidepoint(pos) and not (print_rect and print_rect.collidepoint(pos)):
                     return event
             if event.type == BUTTONDOWN and event.capture:
                 return event
@@ -341,6 +351,7 @@ class PiApplication(object):
                     rect = self._window.get_rect()
                     rect = pygame.Rect(rect.width // 2, 0, rect.width // 2, rect.height)
                 if rect.collidepoint(self._get_event_pos(event)):
+                    event.print_tap = True
                     return event
             if event.type == BUTTONDOWN and event.printer:
                 return event
