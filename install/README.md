@@ -101,7 +101,13 @@ le nouveau**. Il faut alors faire « oublier ce réseau » sur chaque appareil.
 2. **Imprimante**, si présente :
    ```bash
    ~/pibooth/pibooth/bin/pibooth-printcfg
+   lpstat -p                    # relever le nom exact de la file CUPS
    ```
+   Le script renseigne `printer_name` avec `PRINTER_QUEUE`. Sans imprimante
+   déclarée (`PRINTER_DHCP_NAME` vide), y mettre à la main le nom exact de la
+   file. **Ne pas mettre `default`** : sans file par défaut, pibooth imprime
+   sur la première que liste CUPS, parfois une imprimante bureautique A4
+   découverte sur le réseau.
 3. **Redémarrer** pour appliquer la rotation d'écran :
    ```bash
    sudo reboot
